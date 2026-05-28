@@ -13,13 +13,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+
       - run: npm install --ignore-scripts
       - run: npm run dist -- --win
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
+
       - uses: actions/upload-artifact@v4
         with:
-          name: windows
+          name: windows-build
           path: |
             release/*.exe
             release/*.blockmap
@@ -32,13 +34,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+
       - run: npm install --ignore-scripts
       - run: npm run dist -- --linux
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
+
       - uses: actions/upload-artifact@v4
         with:
-          name: linux
+          name: linux-build
           path: |
             release/*.AppImage
             release/latest-linux.yml
@@ -50,13 +54,51 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+
       - run: npm install --ignore-scripts
       - run: npm run dist -- --mac
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
+
       - uses: actions/upload-artifact@v4
         with:
-          name: mac
+          name: mac-build
           path: |
             release/*.dmg
             release/latest-mac.yml
+
+  package:
+    needs: [build-windows, build-linux, build-mac]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all builds
+        uses: actions/download-artifact@v4
+        with:
+          path: ./downloads
+
+      - name: Rename files and create final zip
+        run: |
+          mkdir -p final
+
+          # Windows
+          cp downloads/windows-build/*.exe final/CLauncher.exe 2>/dev/null || true
+          cp downloads/windows-build/*.blockmap final/CLauncher.exe.blockmap 2>/dev/null || true
+          cp downloads/windows-build/latest.yml final/latest.yml 2>/dev/null || true
+
+          # Linux
+          cp downloads/linux-build/*.AppImage final/CLauncher.AppImage 2>/dev/null || true
+          cp downloads/linux-build/latest-linux.yml final/latest-linux.yml 2>/dev/null || true
+
+          # macOS
+          cp downloads/mac-build/*.dmg final/CLauncher.dmg 2>/dev/null || true
+          cp downloads/mac-build/latest-mac.yml final/latest-mac.yml 2>/dev/null || true
+
+          # Create single zip
+          cd final
+          zip -r ../CLauncher-${{ github.ref_name }}.zip .
+
+      - name: Upload unified artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CLauncher-${{ github.ref_name }}
+          path: CLauncher-${{ github.ref_name }}.zip
