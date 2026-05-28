@@ -1,0 +1,46 @@
+.bar {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  background: var(--bg-base);
+  border-bottom: 1px solid var(--border-sub);
+  padding: 0 0 0 16px;
+  -webkit-app-region: drag;
+  flex-shrink: 0;
+}
+
+.title {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text-hint);
+  letter-spacing: 0.04em;
+}
+
+.controls {
+  display: flex;
+  -webkit-app-region: no-drag;
+  height: 100%;
+}
+
+.ctrl {
+  width: 46px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--text-sec);
+  font-size: 14px;
+  transition: background 0.1s, color 0.1s;
+}
+
+.ctrl:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.ctrlClose:hover {
+  background: #c42b1c;
+  color: #fff;
+}

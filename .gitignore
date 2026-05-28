@@ -1,0 +1,13 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+release/
+
+# logs
+npm-debug.log*
+*.log
+
+# editor
+.vscode/
