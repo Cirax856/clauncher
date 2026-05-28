@@ -20,7 +20,10 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: windows
-          path: release/*.exe
+          path: |
+            release/*.exe
+            release/*.blockmap
+            release/latest.yml
 
   build-linux:
     runs-on: ubuntu-latest
@@ -36,7 +39,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: linux
-          path: release/*.AppImage
+          path: |
+            release/*.AppImage
+            release/latest-linux.yml
 
   build-mac:
     runs-on: macos-latest
@@ -52,4 +57,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: mac
-          path: release/*.dmg
+          path: |
+            release/*.dmg
+            release/latest-mac.yml
