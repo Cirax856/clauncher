@@ -1,11 +1,12 @@
-# Nexus Launcher
+# CLauncher
 
 A minimal, modern desktop game launcher with SteamDB version checking.
 Built with **Electron + React + Vite**.
 
 ## Features
+
 - Custom game library with any executable, launch params, version tracking
-- Inline param editing — click the params field to edit in-place
+- Inline param editing - click the params field to edit in-place
 - SteamDB version check via SteamCMD public API
 - Persistent storage via electron-store (no database needed)
 - Native file picker for executables
@@ -45,6 +46,6 @@ Find App IDs on [steamdb.info](https://www.steamdb.info).
 
 ## Data location
 
-- Windows: `%APPDATA%\nexus-launcher\config.json`
-- Linux: `~/.config/nexus-launcher/config.json`
-- macOS: `~/Library/Application Support/nexus-launcher/config.json`
+- Windows: `%APPDATA%\clauncher\config.json`
+- Linux: `~/.config/clauncher/config.json`
+- macOS: `~/Library/Application Support/clauncher/config.json`
