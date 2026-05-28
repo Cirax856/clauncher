@@ -11,5 +11,12 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
+    proxy: {
+      '/search-appid': {
+        target: 'https://steamcommunity.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/search-appid/, '/actions/SearchApps'),
+      },
+    },
   },
 })

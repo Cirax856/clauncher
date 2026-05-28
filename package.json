@@ -1,6 +1,6 @@
 {
   "name": "clauncher",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "cirax",
   "description": "A minimal game launcher with SteamDB version checking",
   "main": "electron/main.js",

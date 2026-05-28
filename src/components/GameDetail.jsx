@@ -323,7 +323,7 @@ export default function GameDetail({ game, status, color, onLaunch, onEdit, onCh
 
           {launches.length === 0 && (
             <div className={styles.emptyLaunches}>
-              no quick launches — add one to quickly launch with different parameters
+              no quick launches - add one to quickly launch with different parameters
             </div>
           )}
 

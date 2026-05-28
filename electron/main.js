@@ -8,7 +8,7 @@ const { autoUpdater } = require('electron-updater')
 // configure feed URL — points to your server
 autoUpdater.setFeedURL({
   provider: 'generic',
-  url: 'https://clauncher.cirax.dev/releases',
+  url: 'https://cdn.cirax.dev/releases',
 })
 
 autoUpdater.autoDownload = true
@@ -116,9 +116,11 @@ app.whenReady().then(() => {
       const args = params
         ? params.trim().split(/\s+/).filter(Boolean)
         : []
+      const path = require('path')
       const proc = spawn(exec, args, {
         detached: true,
         stdio: 'ignore',
+        cwd: path.dirname(exec),
       })
       proc.unref()
       return { ok: true }

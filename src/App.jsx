@@ -186,6 +186,8 @@ export default function App() {
               onDelete={handleFormDelete}
               onClose={() => setFormState(null)}
               onPickExec={pickExec}
+              onCheckVersion={checkVersion}
+              onAddCategory={() => setCatFormState({ category: null })}
             />
           )}
 

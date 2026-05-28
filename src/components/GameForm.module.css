@@ -337,3 +337,66 @@
 .selectOptionActive {
   color: var(--text-primary);
 }
+
+.selectOptionAdd {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  color: var(--text-sec);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s, color 0.1s;
+}
+
+.selectOptionAdd:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.suggestion {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 5px;
+  padding: 7px 10px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  color: var(--text-sec);
+  width: 100%;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.12s;
+  text-align: left;
+  grid-column: span 2;
+}
+
+.suggestion:hover {
+  border-color: var(--blue-border);
+  color: var(--text-primary);
+  background: var(--blue-dim);
+}
+
+.suggestion strong {
+  color: #60a5fa;
+  font-weight: 500;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.selectDivider {
+  height: 1px;
+  background: var(--bg-hover);
+  margin: 4px 8px;
+}

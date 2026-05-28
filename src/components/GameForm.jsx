@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import styles from './GameForm.module.css'
 
-function CustomSelect({ value, onChange, options }) {
+function CustomSelect({ value, onChange, options, onAddNew }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
   const selected = options.find(o => o.value === value) || options[0]
@@ -37,6 +37,22 @@ function CustomSelect({ value, onChange, options }) {
               {opt.label}
             </button>
           ))}
+          {onAddNew && (
+            <>
+              <div className={styles.selectDivider} />
+              <button
+                type="button"
+                className={styles.selectOptionAdd}
+                onClick={() => {
+                  setOpen(false)
+                  onAddNew()
+                }}
+              >
+                <i className="ti ti-folder-plus" style={{ fontSize: 14 }} />
+                Create new
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>
@@ -45,13 +61,45 @@ function CustomSelect({ value, onChange, options }) {
 
 const EMPTY = { name: '', exec: '', params: '', version: '', appId: '', launchViaSteam: false, categoryId: null }
 
-export default function GameForm({ game, categories, onSave, onDelete, onClose, onPickExec }) {
-  const [form, setForm] = useState(game ? { ...game } : { ...EMPTY })
+export default function GameForm({ game, categories, onSave, onDelete, onClose, onPickExec, onCheckVersion, onAddCategory }) {
+  const [form, setForm] = useState(() => game ? { ...EMPTY, ...game } : { ...EMPTY })
   const [picking, setPicking] = useState(false)
+  const [appIdSuggestion, setAppIdSuggestion] = useState(null)
+  const [suggesting, setSuggesting] = useState(false)
+  const searchTimer = useRef(null)
 
   useEffect(() => {
-    setForm(game ? { ...game } : { ...EMPTY })
+    setForm(game ? { ...EMPTY, ...game } : { ...EMPTY })
+    setAppIdSuggestion(null)
   }, [game])
+
+  function handleNameChange(val) {
+    setForm(prev => ({ ...prev, name: val }))
+    setAppIdSuggestion(null)
+    clearTimeout(searchTimer.current)
+    if (val.trim().length < 3) return
+    setSuggesting(true)
+    searchTimer.current = setTimeout(async () => {
+      try {
+        const searchRes = await fetch(`/search-appid/${encodeURIComponent(val)}`)
+        const searchData = await searchRes.json()
+        if (!searchData?.length) return
+        const bestMatch = searchData[0]
+        const infoRes = await fetch(`https://api.steamcmd.net/v1/info/${String(bestMatch.appid)}`)
+        const infoData = await infoRes.json()
+        const latestBuild = infoData?.data?.[bestMatch.appid]?.depots?.branches?.public?.buildid;
+        setAppIdSuggestion({
+          appid: String(bestMatch.appid),
+          latest: latestBuild ? String(latestBuild) : '',
+          name: bestMatch.name
+        })
+      } catch (err) {
+        console.log(err)
+      } finally {
+        setSuggesting(false)
+      }
+    }, 500)
+  }
 
   function set(key, val) {
     setForm(prev => ({ ...prev, [key]: val }))
@@ -86,8 +134,8 @@ export default function GameForm({ game, categories, onSave, onDelete, onClose, 
         <div className={styles.fields}>
           <Field label="game name" required>
             <input
-              value={form.name}
-              onChange={e => set('name', e.target.value)}
+              value={form.name ?? ''}
+              onChange={e => handleNameChange(e.target.value)}
               placeholder="Game Title"
               autoFocus
             />
@@ -140,26 +188,50 @@ export default function GameForm({ game, categories, onSave, onDelete, onClose, 
                 { value: null, label: 'uncategorized' },
                 ...categories.map(c => ({ value: c.id, label: c.name }))
               ]}
+              onAddNew={onAddCategory}
             />
           </Field>
 
           <div className={styles.row2}>
-            <Field label="installed version">
+            <Field label="installed build">
               <input
-                value={form.version}
+                value={form.version ?? ''}
                 onChange={e => set('version', e.target.value)}
-                placeholder="1.0.0"
+                placeholder="Empty to not check"
                 className={styles.mono}
               />
             </Field>
             <Field label="steam app id">
               <input
-                value={form.appId}
+                id="ff-appid"
+                value={form.appId ?? ''}
                 onChange={e => set('appId', e.target.value)}
                 placeholder="730"
                 className={styles.mono}
               />
             </Field>
+            {suggesting && (
+                <div className={styles.suggestion}>
+                  <i className="ti ti-loader-2" style={{ animation: 'spin 0.7s linear infinite', fontSize: 12 }} />
+                  searching steam…
+                </div>
+              )}
+              {appIdSuggestion && !suggesting && (
+                <button
+                  type="button"
+                  className={styles.suggestion}
+                  onClick={() => {
+                    set('appId', appIdSuggestion.appid)
+                    set('name', appIdSuggestion.name)
+                    if (appIdSuggestion.latest) set('version', appIdSuggestion.latest)
+                    setAppIdSuggestion(null)
+                  }}
+                >
+                  <i className="ti ti-brand-steam" style={{ fontSize: 12 }} />
+                  use <strong>{appIdSuggestion.appid}</strong> — {appIdSuggestion.name}
+                  <i className="ti ti-arrow-right" style={{ marginLeft: 'auto', fontSize: 12 }} />
+                </button>
+              )}
           </div>
         </div>
 
