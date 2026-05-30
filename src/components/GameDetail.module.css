@@ -599,3 +599,490 @@
   background: var(--bg-raised);
   color: var(--text-primary);
 }
+
+.protonRow {
+  margin-top: 10px;
+}
+
+.protonSelect {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-md);
+  padding: 8px 14px;
+}
+
+.protonDropdown {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text-sec);
+  font-size: 12px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  cursor: pointer;
+  appearance: none;
+}
+
+.protonDropdown option {
+  background: #111114;
+  color: var(--text-primary);
+}
+
+.customSelect {
+  position: relative;
+  flex: 1;
+}
+
+.selectTrigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: none;
+  border: none;
+  color: var(--text-sec);
+  font-size: 12px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  cursor: pointer;
+  text-align: left;
+  padding: 0;
+  transition: color 0.1s;
+}
+
+.selectTrigger:hover { color: var(--text-primary); }
+
+.selectOpen { color: var(--text-primary); }
+
+.selectChevron {
+  font-size: 13px;
+  color: var(--text-hint);
+  transition: transform 0.15s;
+  flex-shrink: 0;
+}
+
+.selectChevronOpen { transform: rotate(180deg); }
+
+.selectDropdown {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: #111114;
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  z-index: 200;
+  box-shadow: 0 -8px 24px rgba(0,0,0,0.5);
+}
+
+.selectOption {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  color: var(--text-sec);
+  font-size: 12px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s, color 0.1s;
+}
+
+.selectOption:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.selectOptionActive { color: var(--text-primary); }
+
+.envSection {
+  margin: 20px 0;
+}
+
+.envEmpty {
+  font-size: 11px;
+  color: var(--text-hint);
+  padding: 8px 12px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-md);
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+.envRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-sm);
+  margin-bottom: 4px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 12px;
+}
+
+.envKey {
+  color: #60a5fa;
+  font-weight: 500;
+}
+
+.envEquals {
+  color: var(--text-hint);
+}
+
+.envVal {
+  color: var(--green);
+  flex: 1;
+}
+
+.envRemove {
+  background: none;
+  border: none;
+  color: var(--text-hint);
+  font-size: 12px;
+  padding: 2px 3px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.1s;
+  flex-shrink: 0;
+}
+
+.envRemove:hover {
+  background: #1a0808;
+  color: var(--red);
+}
+
+.envPresets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+
+.envPreset {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-sm);
+  color: var(--text-hint);
+  font-size: 11px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.envPreset:hover {
+  border-color: var(--border-hi);
+  color: var(--text-sec);
+}
+
+.envPresetActive {
+  border-color: var(--blue-border);
+  color: #60a5fa;
+  background: var(--blue-dim);
+}
+
+.envAdd {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-md);
+  padding: 6px 8px;
+}
+
+.envInput {
+  background: none;
+  border: none;
+  outline: none;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 12px;
+  color: var(--text-primary);
+  flex: 1;
+  min-width: 0;
+}
+
+.envInput::placeholder { color: var(--text-hint); }
+
+.envAddBtn {
+  background: none;
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-sm);
+  color: var(--text-sec);
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.1s;
+  flex-shrink: 0;
+}
+
+.envAddBtn:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-hi);
+  color: var(--text-primary);
+}
+
+.envError {
+  font-size: 11px;
+  color: var(--red);
+  margin-top: 5px;
+  font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.storageLoading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-hint);
+  font-family: 'Consolas', 'Monaco', monospace;
+  padding: 8px 0;
+}
+
+.storageGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.storageCard {
+  background: var(--bg-raised);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-md);
+  padding: 11px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: border-color 0.1s;
+}
+
+.storageCard:hover { border-color: var(--border-hi); }
+
+.storageCardTop {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.storageCardIcon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-active);
+  border: 1px solid var(--border-hi);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  color: var(--text-sec);
+  flex-shrink: 0;
+}
+
+.storageCardInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.storageCardLabel {
+  font-size: 10px;
+  color: var(--text-hint);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 2px;
+}
+
+.storageCardSize {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: 'Consolas', 'Monaco', monospace;
+  letter-spacing: -0.02em;
+}
+
+.storageCardPath {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.storageCardPath span {
+  flex: 1;
+  font-size: 10px;
+  color: var(--text-hint);
+  font-family: 'Consolas', 'Monaco', monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.storageOpenBtn {
+  background: none;
+  border: none;
+  color: var(--text-hint);
+  font-size: 13px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.1s;
+  flex-shrink: 0;
+}
+
+.storageOpenBtn:hover {
+  background: var(--bg-hover);
+  color: var(--text-sec);
+}
+
+.storageResetBtn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  background: none;
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-sm);
+  color: var(--text-sec);
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.12s;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.storageResetBtn:hover {
+  border-color: #7f1d1d;
+  color: var(--red);
+  background: #1a0808;
+}
+
+.storageResetBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.storageResetConfirm {
+  border-color: #7f1d1d !important;
+  color: var(--red) !important;
+  background: #1a0808 !important;
+  animation: pulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+  from { opacity: 0.7; }
+  to   { opacity: 1; }
+}
+
+.storageWarning {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-hint);
+  line-height: 1.4;
+}
+
+.crashBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #120202;
+  border: 1px solid #7f1d1d;
+  border-radius: var(--radius-md);
+  margin-bottom: 14px;
+}
+
+.crashLeft {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--red);
+  flex: 1;
+  min-width: 0;
+}
+
+.crashTitle {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--red);
+  margin-bottom: 2px;
+}
+
+.crashSub {
+  font-size: 11px;
+  color: #f87171;
+  font-family: 'Consolas', 'Monaco', monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.crashActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.crashLog {
+  padding: 5px 12px;
+  background: none;
+  border: 1px solid #7f1d1d;
+  border-radius: var(--radius-sm);
+  color: var(--red);
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+
+.crashLog:hover { background: #1a0808; }
+
+.crashDismiss {
+  background: none;
+  border: none;
+  color: #7f1d1d;
+  font-size: 14px;
+  padding: 3px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: color 0.1s;
+}
+
+.crashDismiss:hover { color: var(--red); }
+
+.runtimeWarn {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #0a0802;
+  border: 1px solid #78350f;
+  border-radius: var(--radius-md);
+  color: var(--amber);
+  margin-bottom: 8px;
+  font-size: 12px;
+}

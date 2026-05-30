@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useGames } from './hooks/useGames'
 import TitleBar from './components/TitleBar'
 import Sidebar from './components/Sidebar'
+import ProtonModal from './components/ProtonModal'
 import GameDetail from './components/GameDetail'
 import GameForm from './components/GameForm'
 import CategoryForm from './components/CategoryForm'
@@ -15,13 +16,14 @@ export default function App() {
     addGame, updateGame, removeGame,
     launchGame, pickExec,
     setGamesOrder,
-    checkVersion, openSteamDB,
+    checkVersion, openSteamDB, openProtonDB,
     showToast,
     categories,
     addCategory,
     updateCategory,
     removeCategory,
     addLaunch, updateLaunch, removeLaunch,
+    protonInstalls, refreshProton,
   } = useGames()
 
   const [activeId, setActiveId] = useState(null)
@@ -29,6 +31,7 @@ export default function App() {
   const [catFormState, setCatFormState] = useState(null) // null | { category: null|Category }
   const [confirmState, setConfirmState] = useState(null) // null | { message, onConfirm }
   const [updateStatus, setUpdateStatus] = useState(null)
+  const [protonOpen, setProtonOpen] = useState(false)
 
   useEffect(() => {
     if (!window.electronAPI?.onUpdaterStatus) return
@@ -145,6 +148,7 @@ export default function App() {
         onMoveGameToCategory={(gameId, catId) => {
           updateGame(gameId, { categoryId: catId })
         }}
+        onOpenProton={() => setProtonOpen(true)}
       />
 
         <main className={styles.main}>
@@ -158,6 +162,7 @@ export default function App() {
               onEdit={handleEdit}
               onCheckVersion={checkVersion}
               onOpenSteamDB={openSteamDB}
+              onOpenProtonDB={openProtonDB}
               onUpdateGame={(data) => {
                 updateGame(activeGame.id, data)
                 showToast('Changes saved', 'success')
@@ -166,6 +171,7 @@ export default function App() {
               onUpdateLaunch={(launchId, data) => updateLaunch(activeGame.id, launchId, data)}
               onRemoveLaunch={(launchId) => removeLaunch(activeGame.id, launchId)}
               onLaunchConfig={(config) => launchGame({ ...activeGame, params: config.params, launchViaSteam: config.viaSteam })}
+              protonInstalls={protonInstalls}
             />
           ) : (
             <div className={styles.emptyMain}>
@@ -211,6 +217,14 @@ export default function App() {
               message={confirmState.message}
               onConfirm={confirmState.onConfirm}
               onClose={() => setConfirmState(null)}
+            />
+          )}
+
+          {protonOpen && (
+            <ProtonModal
+              installs={protonInstalls}
+              onRefresh={refreshProton}
+              onClose={() => setProtonOpen(false)}
             />
           )}
         </main>

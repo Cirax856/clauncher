@@ -1,0 +1,66 @@
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  border-radius: 12px;
+}
+
+.modal {
+  background: #0d0d0f;
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-lg);
+  width: 520px;
+  max-height: 75vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-sub);
+  flex-shrink: 0;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  color: var(--text-hint);
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: color 0.1s;
+}
+
+.closeBtn:hover { color: var(--text-sec); }
+
+.body {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.body::-webkit-scrollbar { width: 4px; }
+.body::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 2px; }

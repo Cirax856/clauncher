@@ -1,5 +1,48 @@
 import { useState, useRef, useEffect } from 'react'
 import styles from './GameDetail.module.css'
+import LogViewer from './LogViewer'
+
+function CustomSelect({ value, onChange, options }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  const selected = options.find(o => o.value === value) || options[0]
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (!ref.current?.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  return (
+    <div className={styles.customSelect} ref={ref}>
+      <button
+        type="button"
+        className={`${styles.selectTrigger} ${open ? styles.selectOpen : ''}`}
+        onClick={() => setOpen(o => !o)}
+      >
+        <span>{selected?.label}</span>
+        <i className={`ti ti-chevron-down ${styles.selectChevron} ${open ? styles.selectChevronOpen : ''}`} />
+      </button>
+      {open && (
+        <div className={styles.selectDropdown}>
+          {options.map(opt => (
+            <button
+              key={String(opt.value)}
+              type="button"
+              className={`${styles.selectOption} ${opt.value === value ? styles.selectOptionActive : ''}`}
+              onClick={() => { onChange(opt.value); setOpen(false) }}
+            >
+              {opt.value === value && <i className="ti ti-check" style={{ fontSize: 11 }} />}
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function initials(name) {
   return name.split(' ').map(w => w[0]).join('').toUpperCase()
@@ -122,13 +165,67 @@ function LaunchForm({ launch, onSave, onClose }) {
   )
 }
 
-export default function GameDetail({ game, status, color, onLaunch, onEdit, onCheckVersion, onOpenSteamDB, onUpdateGame, onAddLaunch, onUpdateLaunch, onRemoveLaunch, onLaunchConfig }) {
+export default function GameDetail({ game, status, color, onLaunch, onEdit, onCheckVersion, onOpenSteamDB, onOpenProtonDB, onUpdateGame, onAddLaunch, onUpdateLaunch, onRemoveLaunch, onLaunchConfig, protonInstalls }) {
   const [editingParams, setEditingParams] = useState(false)
   const [paramsVal, setParamsVal] = useState(game.params || '')
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [launchForm, setLaunchForm] = useState(null) // null | { launch: null|Launch }
   const [confirmDelete, setConfirmDelete] = useState(null)
   const dropdownRef = useRef(null)
+  const [protonRec, setProtonRec] = useState(null)
+  const [protonRecLoading, setProtonRecLoading] = useState(false)
+  const [newEnvKey, setNewEnvKey] = useState('')
+  const [newEnvVal, setNewEnvVal] = useState('')
+  const [envError, setEnvError] = useState(null)
+  const [storageInfo, setStorageInfo] = useState(null)
+  const [storageLoading, setStorageLoading] = useState(false)
+  const [resetting, setResetting] = useState(false)
+  const [confirmReset, setConfirmReset] = useState(false)
+  const [logOpen, setLogOpen] = useState(false)
+  const [crashInfo, setCrashInfo] = useState(null)
+  const [runtimeWarning, setRuntimeWarning] = useState(null)
+
+  useEffect(() => {
+    if (!window.electronAPI?.onGameExit) return
+    window.electronAPI.onGameExit(({ gameKey, code, crashed, error }) => {
+      const key = game.appId || game.name
+      if (gameKey !== key) return
+      if (crashed) {
+        setCrashInfo({ code, error })
+      }
+    })
+  }, [game.id])
+
+  function formatBytes(bytes) {
+    if (bytes === 0) return '0 B'
+    const k = 1024
+    const sizes = ['B', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`
+  }
+
+  function handleAddEnv() {
+    const key = newEnvKey.trim()
+    const val = newEnvVal.trim()
+    if (!key) { setEnvError('key required'); return }
+    if (!/^[A-Z_][A-Z0-9_]*$/i.test(key)) { setEnvError('invalid key — use letters, numbers, underscores'); return }
+    const current = game.env || {}
+    onUpdateGame({ env: { ...current, [key]: val } })
+    setNewEnvKey('')
+    setNewEnvVal('')
+    setEnvError(null)
+  }
+
+  function handleRemoveEnv(key) {
+    const current = { ...game.env }
+    delete current[key]
+    onUpdateGame({ env: current })
+  }
+
+  function handleEnvKeyDown(e) {
+    if (e.key === 'Enter') handleAddEnv()
+    if (e.key === 'Escape') { setNewEnvKey(''); setNewEnvVal(''); setEnvError(null) }
+  }
 
   useEffect(() => {
     function handleClick(e) {
@@ -137,6 +234,89 @@ export default function GameDetail({ game, status, color, onLaunch, onEdit, onCh
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
+
+  useEffect(() => {
+    if (!game.appId || !protonInstalls?.length) return
+    if (window.electronAPI?.platform !== 'linux') return
+    setProtonRec(null)
+    setProtonRecLoading(true)
+    fetch(`https://www.protondb.com/api/v1/reports/summaries/${game.appId}.json`)
+      .then(r => r.json())
+      .then(data => {
+        const tier = data.tier || data.trendingTier
+        let rec = null
+        if (tier === 'platinum' || tier === 'gold') {
+          rec = {
+            tier,
+            label: 'Works great',
+            desc: 'Runs well on official Proton. Use the latest stable version.',
+            protonType: 'stable',
+            color: '#22c55e',
+          }
+        } else if (tier === 'silver') {
+          rec = {
+            tier,
+            label: 'Try GE-Proton',
+            desc: 'Some issues on official Proton. GE-Proton usually fixes them.',
+            protonType: 'ge',
+            color: '#f59e0b',
+          }
+        } else if (tier === 'bronze' || tier === 'borked') {
+          rec = {
+            tier,
+            label: tier === 'borked' ? 'Likely broken' : 'Runs poorly',
+            desc: 'Known issues on Linux. Try GE-Proton or Experimental — may not work at all.',
+            protonType: 'experimental',
+            color: '#ef4444',
+          }
+        } else if (tier === 'native') {
+          rec = {
+            tier,
+            label: 'Native Linux build',
+            desc: 'This game has a native Linux version. No Proton needed.',
+            protonType: null,
+            color: '#60a5fa',
+          }
+        }
+        setProtonRec(rec)
+      })
+      .catch(() => {})
+      .finally(() => setProtonRecLoading(false))
+  }, [game.appId, game.id])
+
+  useEffect(() => {
+    if (window.electronAPI?.platform !== 'linux') return
+    if (!window.electronAPI?.getStorageInfo) return
+    setStorageInfo(null)
+    setStorageLoading(true)
+    window.electronAPI.getStorageInfo({
+      appId: game.appId,
+      name: game.name,
+      exec: game.exec,
+    }).then(info => {
+      setStorageInfo(info)
+    }).catch(() => {}).finally(() => setStorageLoading(false))
+  }, [game.id, game.exec, game.appId])
+
+  useEffect(() => {
+    if (window.electronAPI?.platform !== 'linux') return
+    if (!game.appId || !window.electronAPI?.checkGameNeedsRuntime) return
+    window.electronAPI.checkGameNeedsRuntime({ appId: game.appId })
+      .then(result => {
+        if (result?.needsRuntime) setRuntimeWarning(result)
+        else setRuntimeWarning(null)
+      })
+      .catch(() => {})
+  }, [game.id, game.appId])
+
+  async function handleResetCompat() {
+    setResetting(true)
+    await window.electronAPI.resetCompatData({ appId: game.appId, name: game.name })
+    const info = await window.electronAPI.getStorageInfo({ appId: game.appId, name: game.name, exec: game.exec })
+    setStorageInfo(info)
+    setResetting(false)
+    setConfirmReset(false)
+  }
 
   function handleParamsSave() {
     onUpdateGame({ params: paramsVal })
@@ -160,7 +340,7 @@ export default function GameDetail({ game, status, color, onLaunch, onEdit, onCh
           >
             {initials(game.name)}
           </div>
-          <div className={styles.heroInfo}>
+          <div classNameproton={styles.heroInfo}>
             <h1 className={styles.heroName}>{game.name}</h1>
             <div className={styles.heroExec}>
               {game.exec || <span className={styles.noExec}>no executable — click edit to set path</span>}
@@ -176,6 +356,28 @@ export default function GameDetail({ game, status, color, onLaunch, onEdit, onCh
             </div>
           </div>
         </div>
+
+        {crashInfo && (
+          <div className={styles.crashBanner}>
+            <div className={styles.crashLeft}>
+              <i className="ti ti-alert-circle" style={{ fontSize: 16, flexShrink: 0 }} />
+              <div>
+                <div className={styles.crashTitle}>game crashed or exited with error</div>
+                <div className={styles.crashSub}>
+                  exit code {crashInfo.code}{crashInfo.error ? ` — ${crashInfo.error}` : ''}
+                </div>
+              </div>
+            </div>
+            <div className={styles.crashActions}>
+              <button className={styles.crashLog} onClick={() => setLogOpen(true)}>
+                view logs
+              </button>
+              <button className={styles.crashDismiss} onClick={() => setCrashInfo(null)}>
+                <i className="ti ti-x" />
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className={styles.actions}>
           <div className={styles.launchGroup} ref={dropdownRef}>
@@ -215,6 +417,12 @@ export default function GameDetail({ game, status, color, onLaunch, onEdit, onCh
                 <i className="ti ti-external-link" aria-hidden="true" />
                 steamdb
               </button>
+              {window.electronAPI?.platform === 'linux' && (
+              <button className={`${styles.btn} ${styles.btnGhost}`} onClick={() => onOpenProtonDB(game.appId)}>
+                <i className="ti ti-external-link" aria-hidden="true" />
+                protondb
+              </button>
+              )}
               <button
                 className={`${styles.btn} ${styles.btnGhost}`}
                 onClick={() => onCheckVersion(game)}
@@ -225,6 +433,13 @@ export default function GameDetail({ game, status, color, onLaunch, onEdit, onCh
               </button>
             </>
           )}
+          <button
+            className={`${styles.btn} ${styles.btnGhost}`}
+            onClick={() => setLogOpen(true)}
+          >
+            <i className="ti ti-terminal-2" aria-hidden="true" />
+            logs
+          </button>
         </div>
       </div>
 
@@ -310,6 +525,218 @@ export default function GameDetail({ game, status, color, onLaunch, onEdit, onCh
               </span>
               <span>Launch via Steam for workshop support</span>
             </label>
+            {window.electronAPI?.platform === 'linux' && protonInstalls?.length > 0 && (
+              <div className={styles.protonRow}>
+                <div className={styles.sectionLabel} style={{ marginBottom: 6 }}>proton</div>
+                {runtimeWarning && (
+                  <div className={styles.runtimeWarn}>
+                    <i className="ti ti-box" style={{ fontSize: 13, flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontWeight: 500, marginBottom: 2 }}>Steam Linux Runtime required</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-sec)', fontWeight: 300 }}>
+                        This game's manifest references the Steam Linux Runtime container. If it crashes on launch, install it via Steam.
+                      </div>
+                    </div>
+                    <button
+                      className={styles.protonRecInstall}
+                      onClick={() => window.electronAPI?.openExternal('steam://install/1391110')}
+                    >
+                      <i className="ti ti-brand-steam" style={{ fontSize: 11 }} />
+                      install
+                    </button>
+                  </div>
+                )}
+                <div className={styles.protonSelect}>
+                  <i className="ti ti-flask" style={{ color: 'var(--text-hint)', fontSize: 13, flexShrink: 0 }} />
+                  <CustomSelect
+                    value={game.protonPath || ''}
+                    onChange={val => onUpdateGame({ protonPath: val || null })}
+                    options={[
+                      { value: '', label: 'native (no proton)' },
+                      ...protonInstalls.map(p => ({ value: p.path, label: p.name }))
+                    ]}
+                  />
+                </div>
+              </div>
+            )}
+            {window.electronAPI?.platform === 'linux' && (
+              <div className={styles.envSection}>
+                <div className={styles.sectionLabel} style={{ marginBottom: 8 }}>
+                  environment variables
+                </div>
+
+                {Object.entries(game.env || {}).length === 0 && (
+                  <div className={styles.envEmpty}>
+                    no env vars set — common ones: DXVK_ASYNC=1, MANGOHUD=1, PROTON_NO_ESYNC=1
+                  </div>
+                )}
+
+                {Object.entries(game.env || {}).map(([key, val]) => (
+                  <div key={key} className={styles.envRow}>
+                    <span className={styles.envKey}>{key}</span>
+                    <span className={styles.envEquals}>=</span>
+                    <span className={styles.envVal}>{val || '1'}</span>
+                    <button
+                      className={styles.envRemove}
+                      onClick={() => handleRemoveEnv(key)}
+                      aria-label={`Remove ${key}`}
+                    >
+                      <i className="ti ti-x" />
+                    </button>
+                  </div>
+                ))}
+
+                <div className={styles.envPresets}>
+                  {[
+                    { key: 'DXVK_ASYNC', val: '1', label: 'DXVK async' },
+                    { key: 'MANGOHUD', val: '1', label: 'MangoHud' },
+                    { key: 'PROTON_NO_ESYNC', val: '1', label: 'no esync' },
+                    { key: 'PROTON_NO_FSYNC', val: '1', label: 'no fsync' },
+                    { key: 'WINE_FULLSCREEN_FSR', val: '1', label: 'FSR' },
+                    { key: 'PROTON_USE_WINED3D', val: '1', label: 'wined3d' },
+                  ].map(preset => {
+                    const active = (game.env || {})[preset.key] !== undefined
+                    return (
+                      <button
+                        key={preset.key}
+                        className={`${styles.envPreset} ${active ? styles.envPresetActive : ''}`}
+                        onClick={() => {
+                          if (active) {
+                            handleRemoveEnv(preset.key)
+                          } else {
+                            onUpdateGame({ env: { ...(game.env || {}), [preset.key]: preset.val } })
+                          }
+                        }}
+                      >
+                        {active && <i className="ti ti-check" style={{ fontSize: 10 }} />}
+                        {preset.label}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                <div className={styles.envAdd}>
+                  <input
+                    className={styles.envInput}
+                    value={newEnvKey}
+                    onChange={e => { setNewEnvKey(e.target.value.toUpperCase()); setEnvError(null) }}
+                    onKeyDown={handleEnvKeyDown}
+                    placeholder="KEY"
+                    spellCheck={false}
+                  />
+                  <span className={styles.envEquals}>=</span>
+                  <input
+                    className={styles.envInput}
+                    value={newEnvVal}
+                    onChange={e => setNewEnvVal(e.target.value)}
+                    onKeyDown={handleEnvKeyDown}
+                    placeholder="value"
+                    spellCheck={false}
+                    style={{ flex: 2 }}
+                  />
+                  <button className={styles.envAddBtn} onClick={handleAddEnv}>
+                    <i className="ti ti-plus" style={{ fontSize: 13 }} />
+                  </button>
+                </div>
+                {envError && <div className={styles.envError}>{envError}</div>}
+              </div>
+            )}
+            {window.electronAPI?.platform === 'linux' && (
+              <div className={styles.section}>
+                <div className={styles.sectionLabel}>storage</div>
+
+                {storageLoading && (
+                  <div className={styles.storageLoading}>
+                    <i className="ti ti-loader-2" style={{ animation: 'spin 0.7s linear infinite', fontSize: 12 }} />
+                    calculating…
+                  </div>
+                )}
+
+                {storageInfo && !storageLoading && (
+                  <div className={styles.storageGrid}>
+                    <div className={styles.storageCard}>
+                      <div className={styles.storageCardTop}>
+                        <div className={styles.storageCardIcon}>
+                          <i className="ti ti-device-desktop" />
+                        </div>
+                        <div className={styles.storageCardInfo}>
+                          <div className={styles.storageCardLabel}>game folder</div>
+                          <div className={styles.storageCardSize}>
+                            {storageInfo.gameSize ? formatBytes(storageInfo.gameSize) : '—'}
+                          </div>
+                        </div>
+                      </div>
+                      {storageInfo.gamePath && (
+                        <div className={styles.storageCardPath}>
+                          <span>{storageInfo.gamePath}</span>
+                          <button
+                            className={styles.storageOpenBtn}
+                            onClick={() => window.electronAPI.openFolder(storageInfo.gamePath)}
+                            title="Open folder"
+                          >
+                            <i className="ti ti-folder-open" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className={styles.storageCard}>
+                      <div className={styles.storageCardTop}>
+                        <div className={styles.storageCardIcon} style={storageInfo.compatExists ? {} : { opacity: 0.4 }}>
+                          <i className="ti ti-database" />
+                        </div>
+                        <div className={styles.storageCardInfo}>
+                          <div className={styles.storageCardLabel}>compat data (wine prefix)</div>
+                          <div className={styles.storageCardSize}>
+                            {storageInfo.compatExists ? formatBytes(storageInfo.compatSize) : 'not created yet'}
+                          </div>
+                        </div>
+                        {storageInfo.compatExists && (
+                          <button
+                            className={`${styles.storageResetBtn} ${confirmReset ? styles.storageResetConfirm : ''}`}
+                            onClick={() => {
+                              if (confirmReset) {
+                                handleResetCompat()
+                              } else {
+                                setConfirmReset(true)
+                                setTimeout(() => setConfirmReset(false), 3000)
+                              }
+                            }}
+                            disabled={resetting}
+                            title="Reset wine prefix — fixes many game issues but wipes saves stored in the prefix"
+                          >
+                            {resetting
+                              ? <i className="ti ti-loader-2" style={{ animation: 'spin 0.7s linear infinite' }} />
+                              : confirmReset
+                              ? 'confirm reset'
+                              : <><i className="ti ti-trash" /> reset</>
+                            }
+                          </button>
+                        )}
+                      </div>
+                      {storageInfo.compatExists && (
+                        <div className={styles.storageCardPath}>
+                          <span>{storageInfo.compatPath}</span>
+                          <button
+                            className={styles.storageOpenBtn}
+                            onClick={() => window.electronAPI.openFolder(storageInfo.compatPath)}
+                            title="Open folder"
+                          >
+                            <i className="ti ti-folder-open" />
+                          </button>
+                        </div>
+                      )}
+                      {storageInfo.compatExists && (
+                        <div className={styles.storageWarning}>
+                          <i className="ti ti-info-circle" style={{ fontSize: 11, flexShrink: 0 }} />
+                          resetting deletes the wine prefix — any saves or settings stored inside it will be lost
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -400,6 +827,13 @@ export default function GameDetail({ game, status, color, onLaunch, onEdit, onCh
             </div>
           </div>
         </div>
+      )}
+
+      {logOpen && (
+        <LogViewer
+          game={game}
+          onClose={() => setLogOpen(false)}
+        />
       )}
     </div>
   )

@@ -107,7 +107,7 @@ function CategorySection({ category, games, activeId, statuses, colors, onSelect
   )
 }
 
-export default function Sidebar({ games, activeId, statuses, colors, categories, onSelect, onAdd, onAddCategory, onRenameCategory, onRemoveCategory, onReorderGames, onMoveGameToCategory }) {
+export default function Sidebar({ games, activeId, statuses, colors, categories, onSelect, onAdd, onAddCategory, onRenameCategory, onRemoveCategory, onReorderGames, onMoveGameToCategory, onOpenProton }) {
   const [query, setQuery] = useState('')
   const [draggingGame, setDraggingGame] = useState(null)
   const [dragOverCatId, setDragOverCatId] = useState(null)
@@ -255,6 +255,11 @@ export default function Sidebar({ games, activeId, statuses, colors, categories,
         <button className={styles.addCatBtn} onClick={onAddCategory} title="Add category">
           <i className="ti ti-folder-plus" aria-hidden="true" />
         </button>
+        {window.electronAPI?.platform === 'linux' && (
+          <button className={styles.addCatBtn} onClick={onOpenProton} title="Proton manager">
+            <i className="ti ti-flask" aria-hidden="true" />
+          </button>
+        )}
       </div>
     </aside>
   )

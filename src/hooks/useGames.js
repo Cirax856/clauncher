@@ -25,6 +25,7 @@ export function useGames() {
   const [statuses, setStatuses] = useState({})
   const [toast, setToast] = useState(null)
   const toastTimer = useRef(null)
+  const [protonInstalls, setProtonInstalls] = useState([])
 
   // Load from electron-store on mount
   useEffect(() => {
@@ -41,6 +42,11 @@ export function useGames() {
         }
         if (savedCats?.length) {
           _nextCatId = Math.max(...savedCats.map(c => c.id)) + 1
+        }
+
+        if (window.electronAPI?.platform === 'linux') {
+          const installs = await window.electronAPI.listProton()
+          setProtonInstalls(installs)
         }
       } else {
         // Browser dev fallback
@@ -120,6 +126,8 @@ export function useGames() {
       name: game.name,
       appId: game.appId,
       launchViaSteam: game.launchViaSteam || false,
+      protonPath: game.protonPath || null,
+      env: game.env || {},
     })
     if (result.ok) {
       showToast(`Launched ${game.name}`, 'success')
@@ -184,6 +192,12 @@ export function useGames() {
     else window.open(url, '_blank')
   }, [])
 
+  const openProtonDB = useCallback((appId) => {
+    const url = `https://www.protondb.com/app/${appId}`
+    if (window.electronAPI) window.electronAPI.openExternal(url)
+    else window.open(url, '_blank')
+  }, [])
+
   // ── Categories ─────────────────────────────────────────
 
   const addCategory = useCallback((name) => {
@@ -239,7 +253,7 @@ export function useGames() {
     setGamesOrder,
     checkVersion,
     checkAllVersions,
-    openSteamDB,
+    openSteamDB, openProtonDB,
     showToast,
     addCategory,
     updateCategory,
@@ -247,5 +261,12 @@ export function useGames() {
     addLaunch,
     updateLaunch,
     removeLaunch,
+    protonInstalls,
+    refreshProton: async () => {
+      if (window.electronAPI?.platform === 'linux') {
+        const installs = await window.electronAPI.listProton()
+        setProtonInstalls(installs)
+      }
+    },
   }
 }
