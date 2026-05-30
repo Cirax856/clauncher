@@ -56,6 +56,7 @@ export default function LogViewer({ game, onClose }) {
   const filtered = lines.filter(l => {
     if (filter === 'err' && l.type !== 'err') return false
     if (filter === 'info' && l.type !== 'info') return false
+    if (filter === 'proton' && l.type !== 'proton') return false
     if (search && !l.line.toLowerCase().includes(search.toLowerCase())) return false
     return true
   })
@@ -94,12 +95,6 @@ export default function LogViewer({ game, onClose }) {
             >
               live output
             </button>
-            <button
-              className={`${styles.tab} ${tab === 'proton' ? styles.tabActive : ''}`}
-              onClick={() => setTab('proton')}
-            >
-              proton.log
-            </button>
           </div>
           {tab === 'live' && (
             <div className={styles.toolbarRight}>
@@ -111,15 +106,15 @@ export default function LogViewer({ game, onClose }) {
                 spellCheck={false}
               />
               <div className={styles.filterBtns}>
-                {['all', 'err', 'info'].map(f => (
-                  <button
-                    key={f}
-                    className={`${styles.filterBtn} ${filter === f ? styles.filterBtnActive : ''}`}
-                    onClick={() => setFilter(f)}
-                  >
-                    {f}
-                  </button>
-                ))}
+              {['all', 'err', 'info', 'proton'].map(f => (
+                <button
+                  key={f}
+                  className={`${styles.filterBtn} ${filter === f ? styles.filterBtnActive : ''}`}
+                  onClick={() => setFilter(f)}
+                >
+                  {f}
+                </button>
+              ))}
               </div>
               <label className={styles.autoScrollLabel}>
                 <input
@@ -155,34 +150,6 @@ export default function LogViewer({ game, onClose }) {
                 </div>
               ))}
               <div ref={bottomRef} />
-            </>
-          )}
-
-          {tab === 'proton' && (
-            <>
-              {protonLoading && (
-                <div className={styles.empty}>
-                  <i className="ti ti-loader-2" style={{ fontSize: 24, animation: 'spin 0.7s linear infinite', marginBottom: 8 }} />
-                  <p>reading proton.log…</p>
-                </div>
-              )}
-              {!protonLoading && !protonLog && (
-                <div className={styles.empty}>
-                  <i className="ti ti-file-off" style={{ fontSize: 24, marginBottom: 8 }} />
-                  <p>no proton.log found — make sure PROTON_LOG=1 is set and the game has been launched</p>
-                </div>
-              )}
-              {!protonLoading && protonLog && (
-                <>
-                  <div className={styles.protonLogPath}>{protonLog.path}</div>
-                  {protonLog.content.split('\n').map((line, i) => (
-                    <div key={i} className={`${styles.line} ${line.toLowerCase().includes('error') || line.toLowerCase().includes('err:') ? styles.line_err : line.toLowerCase().includes('warn') ? styles.line_warn : styles.line_out}`}>
-                      <span className={styles.lineNum}>{i + 1}</span>
-                      <span className={styles.lineText}>{line}</span>
-                    </div>
-                  ))}
-                </>
-              )}
             </>
           )}
         </div>

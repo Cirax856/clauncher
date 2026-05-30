@@ -261,3 +261,12 @@
   border-bottom: 1px solid var(--border-sub);
   margin-bottom: 4px;
 }
+
+.line_proton .lineType {
+  background: #08040f;
+  color: #a78bfa;
+}
+
+.line_proton .lineText {
+  color: #c4b5fd;
+}

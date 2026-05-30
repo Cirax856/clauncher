@@ -93,9 +93,7 @@ jobs:
           cp downloads/mac-build/*.dmg final/CLauncher.dmg 2>/dev/null || true
           cp downloads/mac-build/latest-mac.yml final/latest-mac.yml 2>/dev/null || true
 
-          # Create single zip
-          cd final
-          zip -r ../CLauncher-${{ github.ref_name }}.zip .
+          ls -la final/
 
       - name: Upload unified artifact
         uses: actions/upload-artifact@v4

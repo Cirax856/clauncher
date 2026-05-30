@@ -4,6 +4,7 @@ const { spawn } = require('child_process')
 const Store = require('electron-store')
 const axios = require('axios')
 const { autoUpdater } = require('electron-updater')
+const { execSync } = require('child_process')
 
 // configure feed URL — points to your server
 autoUpdater.setFeedURL({
@@ -63,15 +64,20 @@ const store = new Store({
 const isDev = process.env.NODE_ENV === 'development'
 
 function createWindow() {
+  const isMac = process.platform === 'darwin'
+  const isLinux = process.platform === 'linux'
+  const isWindows = process.platform === 'win32'
+
   const win = new BrowserWindow({
     width: 1000,
     height: 680,
     minWidth: 800,
     minHeight: 560,
-    frame: false,
-    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
+    frame: isLinux,
+    titleBarStyle: isMac ? 'hiddenInset' : 'hidden',
     backgroundColor: '#0f0f11',
-    icon: path.join(__dirname, '../public/icon.png'),
+    icon: path.join(__dirname, isWindows ? '../public/icon.ico' : '../public/icon.png'),
+    title: `CLauncher v${app.getVersion()}`,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -91,6 +97,8 @@ function createWindow() {
 app.whenReady().then(() => {
   const win = createWindow()
   setupUpdater(win)
+
+  ipcMain.handle('app:getVersion', () => app.getVersion())
 
   // Window controls
   ipcMain.on('window:minimize', () => win.minimize())
@@ -117,14 +125,6 @@ app.whenReady().then(() => {
   const runningLogs = new Map() // gameKey -> { lines: [], exitCode, crashed }
 
   ipcMain.handle('games:launch', (_, { exec, params, name, appId, launchViaSteam, protonPath, env }) => {
-    if (launchViaSteam) {
-      if (!appId) return { ok: false, error: 'No Steam App ID set.' }
-      shell.openExternal(`steam://rungameid/${appId}`)
-      return { ok: true }
-    }
-
-    if (!exec) return { ok: false, error: 'No executable path set.' }
-
     const gameKey = appId || name
     runningLogs.set(gameKey, { lines: [], exitCode: null, crashed: false, startTime: Date.now() })
 
@@ -137,6 +137,21 @@ app.whenReady().then(() => {
         win.webContents.send(`game:log:${gameKey}`, { line, type, time: Date.now() })
       }
     }
+
+    if (launchViaSteam) {
+      if (!appId) return { ok: false, error: 'No Steam App ID set.' }
+      pushLog(`[CLauncher] ═══════════════════════════════`, 'info')
+      pushLog(`[CLauncher] game:     ${name}`, 'info')
+      pushLog(`[CLauncher] appid:    ${appId}`, 'info')
+      pushLog(`[CLauncher] method:   steam://rungameid/${appId}`, 'info')
+      pushLog(`[CLauncher] started:  ${new Date().toISOString()}`, 'info')
+      pushLog(`[CLauncher] ═══════════════════════════════`, 'info')
+      pushLog(`[CLauncher] note: process tracking unavailable for Steam launches`, 'info')
+      shell.openExternal(`steam://rungameid/${appId}`)
+      return { ok: true, gameKey }
+    }
+
+    if (!exec) return { ok: false, error: 'No executable path set.' }
 
     try {
       const args = params ? params.trim().split(/\s+/).filter(Boolean) : []
@@ -188,7 +203,74 @@ app.whenReady().then(() => {
         data.toString().split('\n').filter(Boolean).forEach(l => pushLog(l, 'err'))
       })
 
+      pushLog(`[CLauncher] ═══════════════════════════════`, 'info')
+      pushLog(`[CLauncher] game:     ${name}`, 'info')
+      pushLog(`[CLauncher] exec:     ${exec}`, 'info')
+      pushLog(`[CLauncher] params:   ${params || 'none'}`, 'info')
+      pushLog(`[CLauncher] appid:    ${appId || 'none'}`, 'info')
+      pushLog(`[CLauncher] proton:   ${protonPath || 'native'}`, 'info')
+      pushLog(`[CLauncher] pid:      ${proc.pid}`, 'info')
+      pushLog(`[CLauncher] cwd:      ${path.dirname(exec)}`, 'info')
+      pushLog(`[CLauncher] started:  ${new Date().toISOString()}`, 'info')
+      if (env && Object.keys(env).length > 0) {
+        pushLog(`[CLauncher] env vars: ${Object.entries(env).map(([k,v]) => `${k}=${v}`).join(' ')}`, 'info')
+      }
+      pushLog(`[CLauncher] ═══════════════════════════════`, 'info')
+
+      function getSystemInfo() {
+        const info = []
+        try {
+          if (process.platform === 'linux') {
+            info.push(`os: ${execSync('uname -sr').toString().trim()}`)
+            info.push(`gpu: ${execSync("lspci | grep -i 'vga\\|3d\\|display' | head -1").toString().trim()}`)
+            info.push(`kernel: ${execSync('uname -r').toString().trim()}`)
+            try { info.push(`mesa: ${execSync('glxinfo 2>/dev/null | grep "OpenGL version"').toString().trim()}`) } catch {}
+          } else if (process.platform === 'win32') {
+            info.push(`os: ${execSync('ver').toString().trim()}`)
+          }
+          info.push(`arch: ${process.arch}`)
+          info.push(`electron: ${process.versions.electron}`)
+          info.push(`node: ${process.versions.node}`)
+        } catch {}
+        return info
+      }
+      
+      // log system info at start
+      const sysInfo = getSystemInfo()
+      sysInfo.forEach(line => pushLog(`[CLauncher] ${line}`, 'info'))
+
+      const protonLogPath = path.join(compatData, 'steam_log.txt')
+      let protonLogWatcher = null
+      let protonLogPos = 0
+
+      function tailProtonLog(logPath, gameKey) {
+        if (!fs.existsSync(logPath)) {
+          // retry until it appears
+          setTimeout(() => tailProtonLog(logPath, gameKey), 1000)
+          return
+        }
+        protonLogPos = fs.statSync(logPath).size // start from end
+        protonLogWatcher = fs.watch(logPath, () => {
+          try {
+            const stat = fs.statSync(logPath)
+            if (stat.size <= protonLogPos) return
+            const fd = fs.openSync(logPath, 'r')
+            const buf = Buffer.alloc(stat.size - protonLogPos)
+            fs.readSync(fd, buf, 0, buf.length, protonLogPos)
+            fs.closeSync(fd)
+            protonLogPos = stat.size
+            buf.toString('utf8').split('\n').filter(Boolean).forEach(line => {
+              pushLog(line, 'proton')
+              runningLogs.get(gameKey)?.lines.push({ time: Date.now(), line, type: 'proton' })
+            })
+          } catch {}
+        })
+      }
+
+      tailProtonLog(path.join(compatData, 'proton.log'), gameKey)
+
       proc.on('exit', (code, signal) => {
+        protonLogWatcher?.close()
         const entry = runningLogs.get(gameKey)
         if (entry) {
           entry.exitCode = code

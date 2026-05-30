@@ -81,7 +81,8 @@ export default function GameForm({ game, categories, onSave, onDelete, onClose, 
     setSuggesting(true)
     searchTimer.current = setTimeout(async () => {
       try {
-        const searchRes = await fetch(`/search-appid/${encodeURIComponent(val)}`)
+        const isDev = window.location.href.includes('localhost')
+        const searchRes = await fetch(isDev ? `/search-appid/${encodeURIComponent(val)}` : `https://steamcommunity.com/actions/SearchApps/${encodeURIComponent(val)}`)
         const searchData = await searchRes.json()
         if (!searchData?.length) return
         const bestMatch = searchData[0]

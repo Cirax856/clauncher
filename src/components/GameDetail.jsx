@@ -340,10 +340,10 @@ export default function GameDetail({ game, status, color, onLaunch, onEdit, onCh
           >
             {initials(game.name)}
           </div>
-          <div classNameproton={styles.heroInfo}>
+          <div className={styles.heroInfo}>
             <h1 className={styles.heroName}>{game.name}</h1>
             <div className={styles.heroExec}>
-              {game.exec || <span className={styles.noExec}>no executable — click edit to set path</span>}
+              {game.exec || <span className={styles.noExec}>no executable - click edit to set path</span>}
             </div>
             <div className={styles.heroBadges}>
               <VersionBadge status={status} game={game} />
