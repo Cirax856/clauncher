@@ -95,13 +95,13 @@ export default function App() {
       {updateStatus?.state === 'available' && (
         <div className={styles.updateBanner}>
           <i className="ti ti-arrow-up-circle" />
-          version {updateStatus.version} available — downloading…
+          version {updateStatus.version} available - downloading...
         </div>
       )}
       {updateStatus?.state === 'downloading' && (
         <div className={styles.updateBanner}>
           <i className="ti ti-arrow-down" />
-          downloading update… {updateStatus.percent}%
+          downloading update... {updateStatus.percent}%
           <div className={styles.updateProgress}>
             <div className={styles.updateProgressBar} style={{ width: `${updateStatus.percent}%` }} />
           </div>
@@ -110,9 +110,18 @@ export default function App() {
       {updateStatus?.state === 'ready' && (
         <div className={`${styles.updateBanner} ${styles.updateBannerReady}`}>
           <i className="ti ti-check" />
-          update ready — restart to install
+          update ready - restart to install
           <button onClick={() => window.electronAPI.installUpdate()}>
             restart now
+          </button>
+        </div>
+      )}
+      {updateStatus?.state === 'manual' && (
+        <div className={`${styles.updateBanner} ${styles.updateBannerReady}`}>
+          <i className="ti ti-arrow-up-circle" />
+          update available - download manually
+          <button onClick={() => window.electronAPI?.openExternal('https://clauncher.cirax.dev/#download')}>
+            download
           </button>
         </div>
       )}

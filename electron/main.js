@@ -42,6 +42,17 @@ function setupUpdater(win) {
   })
 }
 
+autoUpdater.on('error', (err) => {
+  if (process.platform === 'darwin') {
+    win.webContents.send('updater:status', {
+      state: 'manual',
+      version: err.message,
+    })
+    return
+  }
+  win.webContents.send('updater:status', { state: 'error', message: err.message })
+})
+
 const store = new Store({
   defaults: {
     games: [],

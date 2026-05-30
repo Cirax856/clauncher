@@ -1,6 +1,6 @@
 {
   "name": "clauncher",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "author": "cirax",
   "description": "A minimal game launcher with SteamDB version checking",
   "main": "electron/main.js",
@@ -11,7 +11,7 @@
     "preview": "vite preview"
   },
   "build": {
-    "appId": "dev.clauncher",
+    "appId": "dev.cirax.clauncher",
     "productName": "CLauncher",
     "directories": {
       "output": "release"
@@ -24,18 +24,21 @@
     ],
     "publish": {
       "provider": "generic",
-      "url": "https://clauncher.cirax.dev/releases/"
+      "url": "https://cdn.cirax.dev/clauncher/"
     },
     "win": {
       "target": "nsis",
-      "icon": "public/icon.ico"
+      "icon": "public/icon.ico",
+      "artifactName": "CLauncher.exe"
     },
     "linux": {
-      "target": "AppImage"
+      "target": "AppImage",
+      "artifactName": "CLauncher.AppImage"
     },
     "mac": {
       "target": "dmg",
-      "icon": "public/icon.icns"
+      "icon": "public/icon.icns",
+      "artifactName": "CLauncher.dmg"
     }
   },
   "dependencies": {
