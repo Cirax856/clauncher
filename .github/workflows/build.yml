@@ -99,4 +99,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: CLauncher-${{ github.ref_name }}
-          path: CLauncher-${{ github.ref_name }}.zip
+          path: final/
+          if-no-files-found: error
