@@ -9,7 +9,7 @@ const { execSync } = require('child_process')
 // configure feed URL — points to your server
 autoUpdater.setFeedURL({
   provider: 'generic',
-  url: 'https://cdn.cirax.dev/releases',
+  url: 'https://cdn.cirax.dev/clauncher',
 })
 
 autoUpdater.autoDownload = true
@@ -35,6 +35,10 @@ function setupUpdater(win) {
   })
 
   autoUpdater.on('error', (err) => {
+    if (process.platform === 'darwin') {
+      win.webContents.send('updater:status', { state: 'manual', message: err.message })
+      return
+    }
     win.webContents.send('updater:status', { state: 'error', message: err.message })
   })
 
@@ -42,17 +46,6 @@ function setupUpdater(win) {
     autoUpdater.quitAndInstall()
   })
 }
-
-autoUpdater.on('error', (err) => {
-  if (process.platform === 'darwin') {
-    win.webContents.send('updater:status', {
-      state: 'manual',
-      version: err.message,
-    })
-    return
-  }
-  win.webContents.send('updater:status', { state: 'error', message: err.message })
-})
 
 const store = new Store({
   defaults: {
