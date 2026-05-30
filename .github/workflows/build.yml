@@ -47,28 +47,8 @@ jobs:
             release/*.AppImage
             release/latest-linux.yml
 
-  build-mac:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - run: npm install --ignore-scripts
-      - run: npm run dist -- --mac
-        env:
-          CSC_IDENTITY_AUTO_DISCOVERY: false
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: mac-build
-          path: |
-            release/*.dmg
-            release/latest-mac.yml
-
   package:
-    needs: [build-windows, build-linux, build-mac]
+    needs: [build-windows, build-linux]
     runs-on: ubuntu-latest
     steps:
       - name: Download all builds
@@ -88,10 +68,6 @@ jobs:
           # Linux
           cp downloads/linux-build/*.AppImage final/CLauncher.AppImage 2>/dev/null || true
           cp downloads/linux-build/latest-linux.yml final/latest-linux.yml 2>/dev/null || true
-
-          # macOS
-          cp downloads/mac-build/*.dmg final/CLauncher.dmg 2>/dev/null || true
-          cp downloads/mac-build/latest-mac.yml final/latest-mac.yml 2>/dev/null || true
 
           ls -la final/
 
