@@ -27,6 +27,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener(channel, handler)
   },
   onGameExit: (cb) => ipcRenderer.on('game:exit', (_, data) => cb(data)),
+  onGamePlaytime: (cb) => ipcRenderer.on('game:playtime', (_, data) => cb(data)),
+  killGame: (gameKey) => ipcRenderer.invoke('games:kill', gameKey),
+  isGameRunning: (gameKey) => ipcRenderer.invoke('games:isRunning', gameKey),
 
   // Proton
   listProton: () => ipcRenderer.invoke('proton:list'),

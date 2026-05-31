@@ -20,10 +20,24 @@ function StatusDot({ status }) {
   return <span className={`${styles.dot} ${cls}`} />
 }
 
-function GameItem({ game, active, status, color, onSelect, onDragStart, onDragEnd, isDragging }) {
+function GameItem({ game, active, status, color, onSelect, onDragStart, onDragEnd, isDragging, isRunning }) {
+  function formatLastPlayed(ts) {
+    if (!ts) return '—'
+    const now = Date.now()
+    const diff = now - ts
+    const mins = Math.floor(diff / 1000 / 60)
+    const hours = Math.floor(mins / 60)
+    const days = Math.floor(hours / 24)
+    if (mins < 2) return 'just now'
+    if (mins < 60) return `${mins}m ago`
+    if (hours < 24) return `${hours}h ago`
+    if (days < 7) return `${days}d ago`
+    return new Date(ts).toLocaleDateString()
+  }
+
   return (
     <button
-      className={`${styles.item} ${active ? styles.active : ''} ${isDragging ? styles.dragging : ''}`}
+      className={`${styles.item} ${active ? styles.active : ''} ${isDragging ? styles.dragging : ''} ${isRunning ? styles.itemRunning : ''}`}
       onClick={() => onSelect(game.id)}
       draggable
       onDragStart={e => onDragStart(e, game)}
@@ -39,20 +53,26 @@ function GameItem({ game, active, status, color, onSelect, onDragStart, onDragEn
           borderColor: color.border,
           color: color.accent,
           fontSize: initials(game.name).length > 2 ? 9 : 11,
+          boxShadow: isRunning ? `0 0 8px ${color.accent}44` : 'none',
         }}
       >
         {initials(game.name)}
       </div>
       <div className={styles.meta}>
         <span className={styles.name}>{game.name}</span>
-        <span className={styles.ver}>{game.version || 'no version'}</span>
+        <span className={`${styles.ver} ${isRunning ? styles.verRunning : ''}`}>
+          {isRunning ? 'playing' : game.lastPlayed ? formatLastPlayed(game.lastPlayed) : game.version || 'no version'}
+        </span>
       </div>
-      <StatusDot status={status} />
+      {isRunning
+        ? <span className={styles.runningDot} />
+        : <StatusDot status={status} />
+      }
     </button>
   )
 }
 
-function CategorySection({ category, games, activeId, statuses, colors, onSelect, onRename, onRemove, onDragStart, onDragEnd, onDropOnCategory, onDropOnGame, dragOverCatId, dragOverGameId, draggingGame }) {
+function CategorySection({ category, games, activeId, statuses, colors, onSelect, onRename, onRemove, onDragStart, onDragEnd, onDropOnCategory, onDropOnGame, dragOverCatId, dragOverGameId, draggingGame, runningGames }) {
   const [collapsed, setCollapsed] = useState(false)
   const [hovering, setHovering] = useState(false)
   const isDropTarget = dragOverCatId === category.id && draggingGame?.categoryId !== category.id
@@ -100,6 +120,7 @@ function CategorySection({ category, games, activeId, statuses, colors, onSelect
             onDragStart={onDragStart}
             onDragEnd={onDragEnd}
             isDragging={draggingGame?.id === g.id}
+            isRunning={runningGames?.has(g.appId || g.name)}
           />
         </div>
       ))}
@@ -107,7 +128,7 @@ function CategorySection({ category, games, activeId, statuses, colors, onSelect
   )
 }
 
-export default function Sidebar({ games, activeId, statuses, colors, categories, onSelect, onAdd, onAddCategory, onRenameCategory, onRemoveCategory, onReorderGames, onMoveGameToCategory, onOpenProton }) {
+export default function Sidebar({ games, activeId, statuses, colors, categories, onSelect, onAdd, onAddCategory, onRenameCategory, onRemoveCategory, onReorderGames, onMoveGameToCategory, onOpenProton, runningGames }) {
   const [query, setQuery] = useState('')
   const [draggingGame, setDraggingGame] = useState(null)
   const [dragOverCatId, setDragOverCatId] = useState(null)
@@ -200,6 +221,7 @@ export default function Sidebar({ games, activeId, statuses, colors, categories,
               dragOverCatId={dragOverCatId}
               dragOverGameId={dragOverGameId}
               draggingGame={draggingGame}
+              runningGames={runningGames}
             />
           ) : null
         ))}

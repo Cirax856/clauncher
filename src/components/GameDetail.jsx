@@ -165,12 +165,77 @@ function LaunchForm({ launch, onSave, onClose }) {
   )
 }
 
-export default function GameDetail({ game, status, color, onLaunch, onEdit, onCheckVersion, onOpenSteamDB, onOpenProtonDB, onUpdateGame, onAddLaunch, onUpdateLaunch, onRemoveLaunch, onLaunchConfig, protonInstalls }) {
+function NoteForm({ note, onSave, onClose }) {
+  const [form, setForm] = useState(
+    note
+      ? { name: note.name, note: note.content }
+      : { name: '', note: '' }
+  )
+
+  function set(key, val) {
+    setForm(prev => ({ ...prev, [key]: val }))
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Escape') onClose()
+  }
+
+  return (
+    <div className={styles.launchFormOverlay} onClick={onClose} onKeyDown={handleKey}>
+      <div className={styles.launchFormCard} onClick={e => e.stopPropagation()}>
+        <div className={styles.launchFormHeader}>
+          <span>{note ? 'edit note' : 'new note'}</span>
+          <button onClick={onClose} className={styles.launchFormClose}><i className="ti ti-x" /></button>
+        </div>
+        <div className={styles.launchFormFields}>
+          <div className={styles.launchFormField}>
+            <label>name</label>
+            <input
+              value={form.name}
+              onChange={e => set('name', e.target.value)}
+              placeholder="Name note"
+              autoFocus
+              onKeyDown={e => { if (e.key === 'Enter' && form.name.trim()) { onSave(form); onClose() } }}
+            />
+          </div>
+          <div className={styles.launchFormField}>
+            <label>content</label>
+            <textarea
+              value={form.params}
+              onChange={e => set('content', e.target.value)}
+              placeholder="Note content"
+              className={`${styles.mono} ${styles.textareaField}`}
+              rows={1}
+              onInput={e => {
+                e.target.style.height = 'auto';
+                e.target.style.height = `${e.target.scrollHeight}px`;
+              }}
+            />
+          </div>
+        </div>
+        <div className={styles.launchFormActions}>
+          <button
+            className={styles.launchFormSave}
+            onClick={() => { if (form.name.trim()) { onSave(form); onClose() } }}
+            disabled={!form.name.trim()}
+          >
+            save
+          </button>
+          <button className={styles.launchFormCancel} onClick={onClose}>cancel</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function GameDetail({ game, status, color, onLaunch, onEdit, onCheckVersion, onOpenSteamDB, onOpenProtonDB, onUpdateGame, onAddLaunch, onUpdateLaunch, onRemoveLaunch, onLaunchConfig, onAddNote, onUpdateNote, onRemoveNote, protonInstalls, runningGames, onKillGame }) {
   const [editingParams, setEditingParams] = useState(false)
   const [paramsVal, setParamsVal] = useState(game.params || '')
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [launchForm, setLaunchForm] = useState(null) // null | { launch: null|Launch }
+  const [noteForm, setNoteForm] = useState(null) // null | { note: null|Note }
   const [confirmDelete, setConfirmDelete] = useState(null)
+  const [confirmDeleteNote, setConfirmDeleteNote] = useState(null)
   const dropdownRef = useRef(null)
   const [protonRec, setProtonRec] = useState(null)
   const [protonRecLoading, setProtonRecLoading] = useState(false)
@@ -184,6 +249,37 @@ export default function GameDetail({ game, status, color, onLaunch, onEdit, onCh
   const [logOpen, setLogOpen] = useState(false)
   const [crashInfo, setCrashInfo] = useState(null)
   const [runtimeWarning, setRuntimeWarning] = useState(null)
+  const gameKey = game.appId || game.name
+  const isRunning = runningGames?.has(gameKey)
+  const [hoveringLaunch, setHoveringLaunch] = useState(false)
+
+  function formatPlaytime(ms) {
+    if (!ms) return '—'
+    if (ms < 1000) return `${ms}ms`
+    if (ms < 60000) {
+      const secs = (ms / 1000).toFixed(1)
+      return `${secs}s`
+    }
+    const totalMins = Math.floor(ms / 1000 / 60)
+    if (totalMins < 60) return `${totalMins}m`
+    const hours = Math.floor(totalMins / 60)
+    const mins = totalMins % 60
+    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`
+  }
+  
+  function formatLastPlayed(ts) {
+    if (!ts) return '—'
+    const now = Date.now()
+    const diff = now - ts
+    const mins = Math.floor(diff / 1000 / 60)
+    const hours = Math.floor(mins / 60)
+    const days = Math.floor(hours / 24)
+    if (mins < 2) return 'just now'
+    if (mins < 60) return `${mins}m ago`
+    if (hours < 24) return `${hours}h ago`
+    if (days < 7) return `${days}d ago`
+    return new Date(ts).toLocaleDateString()
+  }
 
   useEffect(() => {
     if (!window.electronAPI?.onGameExit) return
@@ -329,6 +425,7 @@ export default function GameDetail({ game, status, color, onLaunch, onEdit, onCh
   }
 
   const launches = game.launches || []
+  const notes = game.notes || []
 
   return (
     <div className={styles.detail}>
@@ -382,14 +479,23 @@ export default function GameDetail({ game, status, color, onLaunch, onEdit, onCh
         <div className={styles.actions}>
           <div className={styles.launchGroup} ref={dropdownRef}>
             <button
-              className={`${styles.btn} ${styles.btnPrimary} ${styles.launchMain}`}
-              onClick={() => onLaunch(game)}
-              disabled={!game.exec && !game.launchViaSteam}
+              className={`${styles.btn} ${isRunning ? styles.btnRunning : styles.btnPrimary} ${styles.launchMain}`}
+              onClick={() => isRunning ? onKillGame(game) : onLaunch(game)}
+              disabled={!isRunning && !game.exec && !game.launchViaSteam}
+              onMouseEnter={() => setHoveringLaunch(true)}
+              onMouseLeave={() => setHoveringLaunch(false)}
             >
-              <i className="ti ti-player-play" aria-hidden="true" />
-              launch
+              {isRunning ? (
+                hoveringLaunch ? (
+                  <><i className="ti ti-square" aria-hidden="true" /> stop</>
+                ) : (
+                  <><i className="ti ti-activity" aria-hidden="true" /> playing</>
+                )
+              ) : (
+                <><i className="ti ti-player-play" aria-hidden="true" /> launch</>
+              )}
             </button>
-            {launches.length > 0 && (
+            {launches.length > 0 && !isRunning && (
               <button
                 className={`${styles.btn} ${styles.btnPrimary} ${styles.launchCaret}`}
                 onClick={() => setDropdownOpen(o => !o)}
@@ -473,6 +579,14 @@ export default function GameDetail({ game, status, color, onLaunch, onEdit, onCh
                   : status?.state === 'done' ? 'checked'
                   : 'unknown'}
               </div>
+            </div>
+            <div className={styles.infoCard}>
+              <div className={styles.infoLabel}>total playtime</div>
+              <div className={styles.infoValue}>{formatPlaytime(game.totalPlaytime)}</div>
+            </div>
+            <div className={styles.infoCard}>
+              <div className={styles.infoLabel}>last played</div>
+              <div className={styles.infoValue}>{game.lastPlayed ? formatLastPlayed(game.lastPlayed) : '—'}</div>
             </div>
           </div>
         </div>
@@ -788,6 +902,47 @@ export default function GameDetail({ game, status, color, onLaunch, onEdit, onCh
             </div>
           ))}
         </div>
+        <div className={styles.section}>
+          <div className={styles.sectionLabel}>
+            notes
+            <button className={styles.editLink} onClick={() => setNoteForm({ note: null })}>
+              <i className="ti ti-plus" /> add
+            </button>
+          </div>
+
+          {notes.length === 0 && (
+            <div className={styles.emptyLaunches}>
+              no notes
+            </div>
+          )}
+
+          {notes.map(l => (
+            <div key={l.id} className={styles.launchRow}>
+              <div className={styles.launchRowInfo}>
+                <span className={styles.launchRowName}>{l.name}</span>
+                <span className={styles.noteRowMeta}>
+                  {l.content}
+                </span>
+              </div>
+              <div className={styles.launchRowActions}>
+                <button
+                  className={styles.launchRowBtn}
+                  onClick={() => setNoteForm({ note: l })}
+                  title="Edit"
+                >
+                  <i className="ti ti-pencil" />
+                </button>
+                <button
+                  className={`${styles.launchRowBtn} ${styles.launchRowBtnDanger}`}
+                  onClick={() => setConfirmDeleteNote(l.id)}
+                  title="Delete"
+                >
+                  <i className="ti ti-trash" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {launchForm && (
@@ -806,6 +961,22 @@ export default function GameDetail({ game, status, color, onLaunch, onEdit, onCh
         </div>
       )}
 
+      {noteForm && (
+        <div className={styles.launchFormWrapper}>
+          <NoteForm
+            note={noteForm.note}
+            onSave={(data) => {
+              if (noteForm.note) {
+                onUpdateNote(noteForm.note.id, data)
+              } else {
+                onAddNote(data)
+              }
+            }}
+            onClose={() => setNoteForm(null)}
+          />
+        </div>
+      )}
+
       {confirmDelete && (
         <div className={styles.launchFormWrapper}>
           <div className={styles.launchFormOverlay} onClick={() => setConfirmDelete(null)}>
@@ -814,7 +985,7 @@ export default function GameDetail({ game, status, color, onLaunch, onEdit, onCh
                 <span>delete launch?</span>
                 <button onClick={() => setConfirmDelete(null)} className={styles.launchFormClose}><i className="ti ti-x" /></button>
               </div>
-              <p style={{ fontSize: 12, color: 'var(--text-sec)', padding: '8px 0 4px' }}>
+              <p style={{ fontSize: 12, color: 'var(--text-sec)', padding: '8px' }}>
                 This quick launch config will be permanently removed.
               </p>
               <div className={styles.launchFormActions}>
@@ -823,6 +994,29 @@ export default function GameDetail({ game, status, color, onLaunch, onEdit, onCh
                   delete
                 </button>
                 <button className={styles.launchFormCancel} onClick={() => setConfirmDelete(null)}>cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmDeleteNote && (
+        <div className={styles.launchFormWrapper}>
+          <div className={styles.launchFormOverlay} onClick={() => setConfirmDeleteNote(null)}>
+            <div className={styles.launchFormCard} onClick={e => e.stopPropagation()}>
+              <div className={styles.launchFormHeader}>
+                <span>delete note?</span>
+                <button onClick={() => setConfirmDeleteNote(null)} className={styles.launchFormClose}><i className="ti ti-x" /></button>
+              </div>
+              <p style={{ fontSize: 12, color: 'var(--text-sec)', padding: '8px' }}>
+                This note will be permanently removed.
+              </p>
+              <div className={styles.launchFormActions}>
+                <button className={styles.launchFormSave} style={{ background: '#1a0808', borderColor: '#7f1d1d', color: 'var(--red)' }}
+                  onClick={() => { onRemoveNote(confirmDeleteNote); setConfirmDeleteNote(null) }}>
+                  delete
+                </button>
+                <button className={styles.launchFormCancel} onClick={() => setConfirmDeleteNote(null)}>cancel</button>
               </div>
             </div>
           </div>

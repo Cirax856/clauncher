@@ -23,7 +23,9 @@ export default function App() {
     updateCategory,
     removeCategory,
     addLaunch, updateLaunch, removeLaunch,
+    addNote, updateNote, removeNote,
     protonInstalls, refreshProton,
+    runningGames, killGame
   } = useGames()
 
   const [activeId, setActiveId] = useState(null)
@@ -158,6 +160,7 @@ export default function App() {
           updateGame(gameId, { categoryId: catId })
         }}
         onOpenProton={() => setProtonOpen(true)}
+        runningGames={runningGames}
       />
 
         <main className={styles.main}>
@@ -180,7 +183,12 @@ export default function App() {
               onUpdateLaunch={(launchId, data) => updateLaunch(activeGame.id, launchId, data)}
               onRemoveLaunch={(launchId) => removeLaunch(activeGame.id, launchId)}
               onLaunchConfig={(config) => launchGame({ ...activeGame, params: config.params, launchViaSteam: config.viaSteam })}
+              onAddNote={(data) => addNote(activeGame.id, data)}
+              onUpdateNote={(noteId, data) => updateNote(activeGame.id, noteId, data)}
+              onRemoveNote={(noteId) => removeNote(activeGame.id, noteId)}
               protonInstalls={protonInstalls}
+              runningGames={runningGames}
+              onKillGame={killGame}
             />
           ) : (
             <div className={styles.emptyMain}>

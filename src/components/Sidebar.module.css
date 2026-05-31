@@ -339,3 +339,41 @@
   border-radius: var(--radius-md);
   outline: 1px solid var(--accent);
 }
+
+.itemRunning {
+  background: linear-gradient(90deg, #021007 0%, transparent 100%) !important;
+  border-color: #065f46 !important;
+}
+
+.itemRunning:hover {
+  background: linear-gradient(90deg, #031a0a 0%, #0a1a0e 100%) !important;
+}
+
+.verRunning {
+  color: #34d399 !important;
+  font-size: 10px;
+}
+
+.runningDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #34d399;
+  flex-shrink: 0;
+  box-shadow: 0 0 6px #34d399;
+  animation: runningGlow 1.5s ease-in-out infinite;
+}
+
+@keyframes runningGlow {
+
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 6px #34d399;
+  }
+
+  50% {
+    opacity: 0.6;
+    box-shadow: 0 0 2px #34d399;
+  }
+}

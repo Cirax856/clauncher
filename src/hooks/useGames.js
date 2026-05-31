@@ -13,8 +13,10 @@ const COLORS = [
 let _nextId = 100
 let _nextCatId = 200
 let _nextLaunchId = 300
+let _nextNoteId = 400
 
 function nextLaunchId() { return _nextLaunchId++ }
+function nextNoteId() { return _nextNoteId++ }
 function nextId() { return _nextId++ }
 function nextCatId() { return _nextCatId++ }
 
@@ -26,6 +28,7 @@ export function useGames() {
   const [toast, setToast] = useState(null)
   const toastTimer = useRef(null)
   const [protonInstalls, setProtonInstalls] = useState([])
+  const [runningGames, setRunningGames] = useState(new Set())
 
   // Load from electron-store on mount
   useEffect(() => {
@@ -48,16 +51,6 @@ export function useGames() {
           const installs = await window.electronAPI.listProton()
           setProtonInstalls(installs)
         }
-      } else {
-        // Browser dev fallback
-        setGames([
-          { id: 1, name: 'Counter-Strike 2', exec: '', params: '-novid -high', version: '', appId: '730', colorIndex: 0, categoryId: 1 },
-          { id: 2, name: 'Cyberpunk 2077', exec: '', params: '--launcher-skip', version: '', appId: '1091500', colorIndex: 1, categoryId: 1 },
-          { id: 3, name: 'Factorio', exec: '', params: '', version: '', appId: '427520', colorIndex: 2, categoryId: null },
-        ])
-        setCategories([
-          { id: 1, name: 'Steam Games' },
-        ])
       }
       setLoaded(true)
     }
@@ -85,6 +78,29 @@ export function useGames() {
     if (!loaded || !games.length) return
     checkAllVersions()
   }, [loaded]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!window.electronAPI?.onGamePlaytime) return
+    window.electronAPI.onGamePlaytime(({ gameKey, playtimeMs, lastPlayed, steam }) => {
+      setGames(prev => prev.map(g => {
+        if ((g.appId || g.name) !== gameKey) return g
+        const prevTotal = g.totalPlaytime || 0
+        return {
+          ...g,
+          lastPlayed,
+          totalPlaytime: steam ? prevTotal : prevTotal + playtimeMs,
+          lastSessionPlaytime: steam ? null : playtimeMs,
+        }
+      }))
+    })
+  }, [loaded])
+
+  useEffect(() => {
+    if (!window.electronAPI?.onGameExit) return
+    window.electronAPI.onGameExit(({ gameKey }) => {
+      setRunningGames(prev => { const s = new Set(prev); s.delete(gameKey); return s })
+    })
+  }, [loaded])
 
   const showToast = useCallback((msg, type = 'info') => {
     clearTimeout(toastTimer.current)
@@ -130,10 +146,21 @@ export function useGames() {
       env: game.env || {},
     })
     if (result.ok) {
+      const gameKey = game.appId || game.name
+      if (!game.launchViaSteam) {
+        setRunningGames(prev => new Set([...prev, gameKey]))
+      }
       showToast(`Launched ${game.name}`, 'success')
     } else {
       showToast(result.error || 'Launch failed', 'error')
     }
+  }, [showToast])
+  
+  const killGame = useCallback(async (game) => {
+    if (!window.electronAPI) return
+    const gameKey = game.appId || game.name
+    const result = await window.electronAPI.killGame(gameKey)
+    if (!result.ok) showToast(result.error || 'Could not kill game', 'error')
   }, [showToast])
 
   const pickExec = useCallback(async () => {
@@ -238,6 +265,29 @@ export function useGames() {
     ))
   }, [])
 
+  const addNote = useCallback((gameId, data) => {
+    const id = nextNoteId()
+    setGames(prev => prev.map(g => g.id === gameId
+      ? { ...g, notes: [...(g.notes || []), { ...data, id }] }
+      : g
+    ))
+    return id
+  }, [])
+  
+  const updateNote = useCallback((gameId, noteId, data) => {
+    setGames(prev => prev.map(g => g.id === gameId
+      ? { ...g, notes: (g.notes || []).map(l => l.id === noteId ? { ...l, ...data } : l) }
+      : g
+    ))
+  }, [])
+  
+  const removeNote = useCallback((gameId, noteId) => {
+    setGames(prev => prev.map(g => g.id === gameId
+      ? { ...g, notes: (g.notes || []).filter(l => l.id !== noteId) }
+      : g
+    ))
+  }, [])
+
   return {
     games,
     categories,
@@ -250,6 +300,8 @@ export function useGames() {
     removeGame,
     launchGame,
     pickExec,
+    runningGames,
+    killGame,
     setGamesOrder,
     checkVersion,
     checkAllVersions,
@@ -261,6 +313,9 @@ export function useGames() {
     addLaunch,
     updateLaunch,
     removeLaunch,
+    addNote,
+    updateNote,
+    removeNote,
     protonInstalls,
     refreshProton: async () => {
       if (window.electronAPI?.platform === 'linux') {

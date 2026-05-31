@@ -168,7 +168,7 @@
 
 .infoGrid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 8px;
 }
 
@@ -423,6 +423,19 @@
   text-overflow: ellipsis;
 }
 
+.noteRowMeta {
+  font-size: 11px;
+  color: var(--text-primary);
+  font-family: 'Consolas', 'Monaco', monospace;
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-sm);
+  background: var(--bg-base);
+  margin-top: 8px;
+  padding: 8px;
+  white-space: pre-wrap;
+  width: 100%;
+}
+
 .launchRowActions {
   display: flex;
   gap: 4px;
@@ -546,6 +559,26 @@
 }
 
 .launchFormField input::placeholder {
+  color: var(--text-hint);
+}
+
+.launchFormField textarea {
+  background: var(--bg-base);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.1s;
+}
+
+.launchFormField textarea:focus {
+  border-color: var(--accent);
+}
+
+.launchFormField textarea::placeholder {
   color: var(--text-hint);
 }
 
@@ -1085,4 +1118,30 @@
   color: var(--amber);
   margin-bottom: 8px;
   font-size: 12px;
+}
+
+.btnRunning {
+  background: #065f46;
+  border-color: #065f46;
+  color: #34d399;
+  animation: runningPulse 2s ease-in-out infinite;
+}
+
+.btnRunning:hover {
+  background: #7f1d1d !important;
+  border-color: #7f1d1d !important;
+  color: #fca5a5 !important;
+  animation: none !important;
+}
+
+@keyframes runningPulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.75;
+  }
 }
