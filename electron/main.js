@@ -193,7 +193,7 @@ app.whenReady().then(() => {
   const runningLogs = new Map()
   const runningProcs = new Map() // gameKey -> proc
 
-  ipcMain.handle('games:launch', (_, { exec, params, name, appId, launchViaSteam, protonPath, env }) => {
+  ipcMain.handle('games:launch', (_, { exec, params, name, appId, launchViaSteam, protonPath, env, elevated }) => {
     const gameKey = appId || name
     runningLogs.set(gameKey, { lines: [], exitCode: null, crashed: false, startTime: Date.now() })
 
@@ -287,12 +287,47 @@ app.whenReady().then(() => {
 
         tailProtonLog(path.join(compatData, 'proton.log'))
       } else {
-        proc = spawn(exec, args, {
-          detached: false,
-          stdio: ['ignore', 'pipe', 'pipe'],
-          cwd: path.dirname(exec),
-          env: { ...process.env, ...(env || {}) },
-        })
+        if (elevated && process.platform === 'win32') {
+          let command = `Start-Process -FilePath '${exec.replace(/'/g, "''")}' ` +
+                        `-WorkingDirectory '${path.dirname(exec).replace(/'/g, "''")}' ` +
+                        `-Verb RunAs`;
+        
+          if (args.length > 0) {
+            const argString = args.map(arg => 
+              arg.includes(' ') ? `"${arg.replace(/"/g, '""')}"` : arg
+            ).join(' ');
+            
+            command += ` -ArgumentList '${argString.replace(/'/g, "''")}'`;
+          }
+        
+          const psArgs = [
+            '-NoProfile',
+            '-WindowStyle', 'Hidden',
+            '-Command',
+            command
+          ];
+        
+          proc = spawn('powershell.exe', psArgs, {
+            detached: false,
+            stdio: ['ignore', 'pipe', 'pipe'],
+          });
+        } else if (elevated && process.platform === 'linux') {
+          // use pkexec or sudo based on what's available
+          const elevator = fs.existsSync('/usr/bin/pkexec') ? 'pkexec' : 'sudo'
+          proc = spawn(elevator, [exec, ...args], {
+            detached: false,
+            stdio: ['ignore', 'pipe', 'pipe'],
+            cwd: path.dirname(exec),
+            env: { ...process.env, ...(env || {}) },
+          })
+        } else {
+          proc = spawn(exec, args, {
+            detached: false,
+            stdio: ['ignore', 'pipe', 'pipe'],
+            cwd: path.dirname(exec),
+            env: { ...process.env, ...(env || {}) },
+          })
+        }
       }
 
       runningProcs.set(gameKey, proc)
@@ -307,6 +342,7 @@ app.whenReady().then(() => {
       pushLog(`[CLauncher] pid:      ${proc.pid}`, 'info')
       pushLog(`[CLauncher] cwd:      ${path.dirname(exec)}`, 'info')
       pushLog(`[CLauncher] started:  ${new Date().toISOString()}`, 'info')
+      pushLog(`[CLauncher] elevated: ${elevated ? 'yes' : 'no'}`, 'info')
       if (env && Object.keys(env).length > 0) {
         pushLog(`[CLauncher] env:      ${Object.entries(env).map(([k, v]) => `${k}=${v}`).join(' ')}`, 'info')
       }
@@ -350,8 +386,17 @@ app.whenReady().then(() => {
 
       proc.on('error', err => {
         pushLog(`[CLauncher] spawn error: ${err.message}`, 'err')
+        if (err.code === 'EACCES' || err.code === 'EPERM') {
+          pushLog(`[CLauncher] hint: permission denied — try launching as administrator`, 'err')
+        }
         if (!win.isDestroyed()) {
-          win.webContents.send('game:exit', { gameKey, code: -1, crashed: true, error: err.message })
+          win.webContents.send('game:exit', {
+            gameKey,
+            code: -1,
+            crashed: true,
+            error: err.message,
+            needsElevation: err.code === 'EACCES' || err.code === 'EPERM',
+          })
         }
       })
 

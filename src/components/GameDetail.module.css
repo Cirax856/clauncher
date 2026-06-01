@@ -1145,3 +1145,8 @@
     opacity: 0.75;
   }
 }
+
+.note {
+  color: var(--text-hint);
+  font-size: 11px;
+}

@@ -131,11 +131,7 @@ export function useGames() {
     setStatuses(prev => { const s = { ...prev }; delete s[id]; return s })
   }, [])
 
-  const launchGame = useCallback(async (game) => {
-    if (!window.electronAPI) {
-      showToast(`Launching ${game.name}…`, 'info')
-      return
-    }
+  const launchGame = useCallback(async (game, elevated = false) => {
     const result = await window.electronAPI.launchGame({
       exec: game.exec,
       params: game.params,
@@ -144,13 +140,14 @@ export function useGames() {
       launchViaSteam: game.launchViaSteam || false,
       protonPath: game.protonPath || null,
       env: game.env || {},
+      elevated,
     })
     if (result.ok) {
       const gameKey = game.appId || game.name
       if (!game.launchViaSteam) {
         setRunningGames(prev => new Set([...prev, gameKey]))
       }
-      showToast(`Launched ${game.name}`, 'success')
+      showToast(`Launched ${game.name}${elevated ? ' (admin)' : ''}`, 'success')
     } else {
       showToast(result.error || 'Launch failed', 'error')
     }

@@ -121,7 +121,7 @@ function LaunchForm({ launch, onSave, onClose }) {
             <input
               value={form.name}
               onChange={e => set('name', e.target.value)}
-              placeholder="Competitive"
+              placeholder="Quick launch name"
               autoFocus
               onKeyDown={e => { if (e.key === 'Enter' && form.name.trim()) { onSave(form); onClose() } }}
             />
@@ -252,6 +252,7 @@ export default function GameDetail({ game, status, color, onLaunch, onEdit, onCh
   const gameKey = game.appId || game.name
   const isRunning = runningGames?.has(gameKey)
   const [hoveringLaunch, setHoveringLaunch] = useState(false)
+  const [elevated, setElevated] = useState(game.elevated || false)
 
   function formatPlaytime(ms) {
     if (!ms) return '—'
@@ -283,11 +284,11 @@ export default function GameDetail({ game, status, color, onLaunch, onEdit, onCh
 
   useEffect(() => {
     if (!window.electronAPI?.onGameExit) return
-    window.electronAPI.onGameExit(({ gameKey, code, crashed, error }) => {
+    window.electronAPI.onGameExit(({ gameKey, code, crashed, error, needsElevation }) => {
       const key = game.appId || game.name
       if (gameKey !== key) return
       if (crashed) {
-        setCrashInfo({ code, error })
+        setCrashInfo({ code, error, needsElevation })
       }
     })
   }, [game.id])
@@ -405,6 +406,10 @@ export default function GameDetail({ game, status, color, onLaunch, onEdit, onCh
       .catch(() => {})
   }, [game.id, game.appId])
 
+  useEffect(() => {
+    setElevated(game.elevated || false)
+  }, [game.id])
+
   async function handleResetCompat() {
     setResetting(true)
     await window.electronAPI.resetCompatData({ appId: game.appId, name: game.name })
@@ -450,6 +455,11 @@ export default function GameDetail({ game, status, color, onLaunch, onEdit, onCh
               {game.params && (
                 <span className={`${styles.badge} ${styles.badgeMuted}`}>custom params</span>
               )}
+              {game.elevated && (
+                <span className={`${styles.badge} ${styles.badgeAmber}`}>
+                  <i className="ti ti-shield" style={{ fontSize: 10 }} /> admin
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -459,13 +469,32 @@ export default function GameDetail({ game, status, color, onLaunch, onEdit, onCh
             <div className={styles.crashLeft}>
               <i className="ti ti-alert-circle" style={{ fontSize: 16, flexShrink: 0 }} />
               <div>
-                <div className={styles.crashTitle}>game crashed or exited with error</div>
+                <div className={styles.crashTitle}>
+                  {crashInfo.needsElevation ? 'permission denied' : 'game crashed or exited with error'}
+                </div>
                 <div className={styles.crashSub}>
-                  exit code {crashInfo.code}{crashInfo.error ? ` — ${crashInfo.error}` : ''}
+                  {crashInfo.needsElevation
+                    ? 'this game may require administrator privileges'
+                    : `exit code ${crashInfo.code}${crashInfo.error ? ` — ${crashInfo.error}` : ''}`}
                 </div>
               </div>
             </div>
             <div className={styles.crashActions}>
+              {crashInfo.needsElevation && (
+                <button
+                  className={styles.crashLog}
+                  style={{ borderColor: '#78350f', color: '#f59e0b' }}
+                  onClick={() => {
+                    setElevated(true)
+                    onUpdateGame({ elevated: true })
+                    setCrashInfo(null)
+                    onLaunch(game, true)
+                  }}
+                >
+                  <i className="ti ti-shield" style={{ fontSize: 11 }} />
+                  relaunch as admin
+                </button>
+              )}
               <button className={styles.crashLog} onClick={() => setLogOpen(true)}>
                 view logs
               </button>
@@ -480,7 +509,7 @@ export default function GameDetail({ game, status, color, onLaunch, onEdit, onCh
           <div className={styles.launchGroup} ref={dropdownRef}>
             <button
               className={`${styles.btn} ${isRunning ? styles.btnRunning : styles.btnPrimary} ${styles.launchMain}`}
-              onClick={() => isRunning ? onKillGame(game) : onLaunch(game)}
+              onClick={() => isRunning ? onKillGame(game) : onLaunch(game, elevated)}
               disabled={!isRunning && !game.exec && !game.launchViaSteam}
               onMouseEnter={() => setHoveringLaunch(true)}
               onMouseLeave={() => setHoveringLaunch(false)}
@@ -639,6 +668,7 @@ export default function GameDetail({ game, status, color, onLaunch, onEdit, onCh
               </span>
               <span>Launch via Steam for workshop support</span>
             </label>
+            <span className={styles.note}> *games launched via Steam can't track playtime nor log data</span>
             {window.electronAPI?.platform === 'linux' && protonInstalls?.length > 0 && (
               <div className={styles.protonRow}>
                 <div className={styles.sectionLabel} style={{ marginBottom: 6 }}>proton</div>
@@ -853,6 +883,29 @@ export default function GameDetail({ game, status, color, onLaunch, onEdit, onCh
             )}
           </div>
         </div>
+
+        {(window.electronAPI?.platform === 'win32' || window.electronAPI?.platform === 'linux') && (
+          <div className={styles.steamLaunchRow} style={{ marginTop: -12, marginBottom: 12 }}>
+            <label className={`${styles.checkLabel} ${elevated ? styles.checkActive : ''}`}
+              style={elevated ? { borderColor: '#78350f', background: '#120a01', color: '#f59e0b' } : {}}>
+              <input
+                type="checkbox"
+                className={styles.checkInput}
+                checked={elevated}
+                onChange={e => {
+                  setElevated(e.target.checked)
+                  onUpdateGame({ elevated: e.target.checked })
+                }}
+              />
+              <span className={styles.checkBox} style={elevated ? { background: '#1a0e02', borderColor: '#78350f', color: '#f59e0b' } : {}}>
+                {elevated && <i className="ti ti-check" />}
+              </span>
+              <span>
+                {window.electronAPI?.platform === 'win32' ? 'Run as administrator (UAC)' : 'Run with pkexec (elevated)'}
+              </span>
+            </label>
+          </div>
+        )}
 
         <div className={styles.section}>
           <div className={styles.sectionLabel}>
