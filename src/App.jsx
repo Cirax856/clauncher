@@ -9,6 +9,7 @@ import CategoryForm from './components/CategoryForm'
 import ConfirmDialog from './components/ConfirmDialog'
 import Toast from './components/Toast'
 import styles from './App.module.css'
+import SettingsModal, { PRESETS } from './components/SettingsModal'
 
 export default function App() {
   const {
@@ -25,7 +26,8 @@ export default function App() {
     addLaunch, updateLaunch, removeLaunch,
     addNote, updateNote, removeNote,
     protonInstalls, refreshProton,
-    runningGames, killGame
+    runningGames, killGame,
+    checkAllVersions
   } = useGames()
 
   const [activeId, setActiveId] = useState(null)
@@ -34,6 +36,13 @@ export default function App() {
   const [confirmState, setConfirmState] = useState(null) // null | { message, onConfirm }
   const [updateStatus, setUpdateStatus] = useState(null)
   const [protonOpen, setProtonOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+
+  useEffect(() => {
+    window.electronAPI?.getTheme?.().then(theme => {
+      if (theme) applyTheme(theme)
+    })
+  }, [])
 
   useEffect(() => {
     if (!window.electronAPI?.onUpdaterStatus) return
@@ -44,6 +53,25 @@ export default function App() {
 
   function confirm(message, onConfirm) {
     setConfirmState({ message, onConfirm })
+  }
+
+  function applyTheme(theme) {
+    const root = document.documentElement
+    // apply preset vars
+    const preset = PRESETS[theme.preset]
+    if (preset) {
+      Object.entries(preset.vars).forEach(([k, v]) => root.style.setProperty(k, v))
+    } else {
+      // reset to defaults
+      const defaultVars = ['--bg-base','--bg-surface','--bg-raised','--bg-hover','--bg-active',
+        '--border-sub','--border-mid','--border-hi','--accent','--accent-hover',
+        '--text-primary','--text-sec','--green','--amber','--red']
+      defaultVars.forEach(k => root.style.removeProperty(k))
+    }
+    // apply custom overrides on top
+    if (theme.custom) {
+      Object.entries(theme.custom).forEach(([k, v]) => root.style.setProperty(k, v))
+    }
   }
 
   const activeGame = games.find(g => g.id === (activeId ?? games[0]?.id)) ?? null
@@ -65,9 +93,21 @@ export default function App() {
   function handleFormSave(data) {
     if (formState.game) {
       updateGame(formState.game.id, data)
+      // check version if appId is set
+      if (data.appId) {
+        const updatedGame = { ...formState.game, ...data }
+        setTimeout(() => checkVersion(updatedGame), 500)
+      }
     } else {
       const newId = addGame(data)
       setActiveId(newId)
+      // check version for new game if appId is set
+      if (data.appId) {
+        setTimeout(() => {
+          const newGame = { id: newId, ...data }
+          checkVersion(newGame)
+        }, 500)
+      }
     }
     setFormState(null)
   }
@@ -161,6 +201,8 @@ export default function App() {
         }}
         onOpenProton={() => setProtonOpen(true)}
         runningGames={runningGames}
+        onCheckAllVersions={checkAllVersions}
+        onOpenSettings={() => setSettingsOpen(true)}
       />
 
         <main className={styles.main}>
@@ -242,6 +284,13 @@ export default function App() {
               installs={protonInstalls}
               onRefresh={refreshProton}
               onClose={() => setProtonOpen(false)}
+            />
+          )}
+
+          {settingsOpen && (
+            <SettingsModal
+              onClose={() => setSettingsOpen(false)}
+              onThemeChange={applyTheme}
             />
           )}
         </main>

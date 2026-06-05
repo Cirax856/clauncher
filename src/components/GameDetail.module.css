@@ -1150,3 +1150,24 @@
   color: var(--text-hint);
   font-size: 11px;
 }
+
+.updateBuildBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid #78350f;
+  background: #1a0e02;
+  color: #f59e0b;
+  font-size: 10px;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.updateBuildBtn:hover {
+  background: #261300;
+  border-color: #b45309;
+}

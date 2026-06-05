@@ -109,7 +109,9 @@ function LaunchForm({ launch, onSave, onClose }) {
   }
 
   return (
-    <div className={styles.launchFormOverlay} onClick={onClose} onKeyDown={handleKey}>
+    <div className={styles.launchFormOverlay} onClick={e => {
+      if (e.target === e.currentTarget) onClose()
+    }} onKeyDown={handleKey}>
       <div className={styles.launchFormCard} onClick={e => e.stopPropagation()}>
         <div className={styles.launchFormHeader}>
           <span>{launch ? 'edit launch' : 'new launch'}</span>
@@ -181,7 +183,9 @@ function NoteForm({ note, onSave, onClose }) {
   }
 
   return (
-    <div className={styles.launchFormOverlay} onClick={onClose} onKeyDown={handleKey}>
+    <div className={styles.launchFormOverlay} onClick={e => {
+      if (e.target === e.currentTarget) onClose()
+    }} onKeyDown={handleKey}>
       <div className={styles.launchFormCard} onClick={e => e.stopPropagation()}>
         <div className={styles.launchFormHeader}>
           <span>{note ? 'edit note' : 'new note'}</span>
@@ -602,7 +606,18 @@ export default function GameDetail({ game, status, color, onLaunch, onEdit, onCh
               <div className={styles.infoLabel}>status</div>
               <div className={`${styles.infoValue} ${status?.state === 'up-to-date' ? styles.valueGreen : status?.state === 'outdated' ? styles.valueAmber : ''}`}>
                 {status?.state === 'up-to-date' ? 'up to date'
-                  : status?.state === 'outdated' ? 'outdated'
+                  : status?.state === 'outdated' ? (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      outdated
+                      <button
+                        className={styles.updateBuildBtn}
+                        onClick={() => { onUpdateGame({ version: status.latestBuild }); onCheckVersion({ ...game, version: status.latestBuild }) }}
+                        title={`Mark as updated to ${status.latestBuild}`}
+                      >
+                        set {status.latestBuild}
+                      </button>
+                    </span>
+                  )
                   : status?.state === 'checking' ? 'checking…'
                   : status?.state === 'error' ? 'error'
                   : status?.state === 'done' ? 'checked'
@@ -1032,7 +1047,9 @@ export default function GameDetail({ game, status, color, onLaunch, onEdit, onCh
 
       {confirmDelete && (
         <div className={styles.launchFormWrapper}>
-          <div className={styles.launchFormOverlay} onClick={() => setConfirmDelete(null)}>
+          <div className={styles.launchFormOverlay} onClick={e => {
+            if (e.target === e.currentTarget) setConfirmDelete(null)
+          }}>
             <div className={styles.launchFormCard} onClick={e => e.stopPropagation()}>
               <div className={styles.launchFormHeader}>
                 <span>delete launch?</span>
@@ -1055,7 +1072,9 @@ export default function GameDetail({ game, status, color, onLaunch, onEdit, onCh
 
       {confirmDeleteNote && (
         <div className={styles.launchFormWrapper}>
-          <div className={styles.launchFormOverlay} onClick={() => setConfirmDeleteNote(null)}>
+          <div className={styles.launchFormOverlay} onClick={e => {
+            if (e.target === e.currentTarget) setConfirmDeleteNote(null)
+          }}>
             <div className={styles.launchFormCard} onClick={e => e.stopPropagation()}>
               <div className={styles.launchFormHeader}>
                 <span>delete note?</span>

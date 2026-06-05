@@ -64,7 +64,9 @@ export default function LogViewer({ game, onClose }) {
   const errCount = lines.filter(l => l.type === 'err').length
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
+    <div className={styles.overlay} onClick={e => {
+      if (e.target === e.currentTarget) onClose()
+    }}>
       <div className={styles.panel} onClick={e => e.stopPropagation()}>
         <div className={styles.header}>
           <div className={styles.headerLeft}>

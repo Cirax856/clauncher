@@ -288,6 +288,7 @@
 
 .addCatBtn {
   width: 34px;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -376,4 +377,57 @@
     opacity: 0.6;
     box-shadow: 0 0 2px #34d399;
   }
+}
+
+.menuWrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.footerMenu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 0;
+  background: #111114;
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5);
+  min-width: 160px;
+  z-index: 100;
+}
+
+.footerMenuItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border-sub);
+  color: var(--text-sec);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s, color 0.1s;
+}
+
+.footerMenuItem:last-child {
+  border-bottom: none;
+}
+
+.footerMenuItem:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.footerMenuItem i {
+  font-size: 14px;
+  color: var(--text-hint);
+}
+
+.footerMenuItem:hover i {
+  color: var(--text-sec);
 }

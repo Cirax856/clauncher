@@ -19,7 +19,9 @@ export default function CategoryForm({ category, onSave, onClose }) {
   }
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
+    <div className={styles.overlay} onClick={e => {
+      if (e.target === e.currentTarget) onClose()
+    }}>
       <div className={styles.card} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
         <div className={styles.header}>
           <span className={styles.title}>{category ? 'rename category' : 'new category'}</span>

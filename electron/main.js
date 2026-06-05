@@ -189,6 +189,41 @@ app.whenReady().then(() => {
   ipcMain.handle('categories:load', () => store.get('categories'))
   ipcMain.handle('categories:save', (_, categories) => { store.set('categories', categories); return true })
 
+  // ── Startup ──────────────────────────────────────────
+  ipcMain.handle('settings:getStartup', () => {
+    return app.getLoginItemSettings().openAtLogin
+  })
+
+  ipcMain.handle('settings:setStartup', (_, enable) => {
+    if (process.platform === 'linux') {
+      const home = os.homedir()
+      const autostartDir = path.join(home, '.config/autostart')
+      const desktopFile = path.join(autostartDir, 'clauncher.desktop')
+      if (enable) {
+        fs.mkdirSync(autostartDir, { recursive: true })
+        const execPath = app.getPath('exe')
+        fs.writeFileSync(desktopFile, `[Desktop Entry]
+  Type=Application
+  Name=CLauncher
+  Exec=${execPath}
+  Hidden=false
+  NoDisplay=false
+  X-GNOME-Autostart-enabled=true
+  `)
+      } else {
+        try { fs.unlinkSync(desktopFile) } catch {}
+      }
+      return
+    }
+    app.setLoginItemSettings({ openAtLogin: enable })
+  })
+
+  // ── Theme store ───────────────────────────────────────
+  ipcMain.handle('settings:getTheme', () => store.get('theme', {}))
+  ipcMain.handle('settings:setTheme', (_, theme) => {
+    store.set('theme', theme)
+  })
+
   // ── Launch game ──────────────────────────────────────
   const runningLogs = new Map()
   const runningProcs = new Map() // gameKey -> proc

@@ -2,7 +2,9 @@ import styles from './ConfirmDialog.module.css'
 
 export default function ConfirmDialog({ message, onConfirm, onClose }) {
   return (
-    <div className={styles.overlay} onClick={onClose}>
+    <div className={styles.overlay} onClick={e => {
+      if (e.target === e.currentTarget) onClose()
+    }}>
       <div className={styles.card} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
         <div className={styles.icon}>
           <i className="ti ti-alert-triangle" />

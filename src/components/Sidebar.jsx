@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import styles from './Sidebar.module.css'
 
 function initials(name) {
@@ -21,6 +21,15 @@ function StatusDot({ status }) {
 }
 
 function GameItem({ game, active, status, color, onSelect, onDragStart, onDragEnd, isDragging, isRunning }) {
+  const [elapsed, setElapsed] = useState(0)
+
+  useEffect(() => {
+    if (!isRunning) { setElapsed(0); return }
+    const start = Date.now()
+    const interval = setInterval(() => setElapsed(Date.now() - start), 1000)
+    return () => clearInterval(interval)
+  }, [isRunning])
+
   function formatLastPlayed(ts) {
     if (!ts) return '—'
     const now = Date.now()
@@ -33,6 +42,15 @@ function GameItem({ game, active, status, color, onSelect, onDragStart, onDragEn
     if (hours < 24) return `${hours}h ago`
     if (days < 7) return `${days}d ago`
     return new Date(ts).toLocaleDateString()
+  }
+
+  function formatDuration(ms) {
+    const totalSecs = Math.floor(ms / 1000)
+    const hours = Math.floor(totalSecs / 3600)
+    const mins = Math.floor((totalSecs % 3600) / 60)
+    const secs = totalSecs % 60
+    if (hours > 0) return `${hours}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
   }
 
   return (
@@ -50,7 +68,7 @@ function GameItem({ game, active, status, color, onSelect, onDragStart, onDragEn
         className={styles.icon}
         style={{
           background: color.bg,
-          borderColor: color.border,
+          borderColor: isRunning ? color.accent : color.border,
           color: color.accent,
           fontSize: initials(game.name).length > 2 ? 9 : 11,
           boxShadow: isRunning ? `0 0 8px ${color.accent}44` : 'none',
@@ -61,7 +79,9 @@ function GameItem({ game, active, status, color, onSelect, onDragStart, onDragEn
       <div className={styles.meta}>
         <span className={styles.name}>{game.name}</span>
         <span className={`${styles.ver} ${isRunning ? styles.verRunning : ''}`}>
-          {isRunning ? 'playing' : game.lastPlayed ? formatLastPlayed(game.lastPlayed) : game.version || 'no version'}
+          {isRunning
+            ? formatDuration(elapsed)
+            : game.lastPlayed ? formatLastPlayed(game.lastPlayed) : game.version || 'no version'}
         </span>
       </div>
       {isRunning
@@ -128,11 +148,21 @@ function CategorySection({ category, games, activeId, statuses, colors, onSelect
   )
 }
 
-export default function Sidebar({ games, activeId, statuses, colors, categories, onSelect, onAdd, onAddCategory, onRenameCategory, onRemoveCategory, onReorderGames, onMoveGameToCategory, onOpenProton, runningGames }) {
+export default function Sidebar({ games, activeId, statuses, colors, categories, onSelect, onAdd, onAddCategory, onRenameCategory, onRemoveCategory, onReorderGames, onMoveGameToCategory, onOpenProton, runningGames, onCheckAllVersions, onOpenSettings }) {
   const [query, setQuery] = useState('')
   const [draggingGame, setDraggingGame] = useState(null)
   const [dragOverCatId, setDragOverCatId] = useState(null)
   const [dragOverGameId, setDragOverGameId] = useState(null)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef(null)
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (!menuRef.current?.contains(e.target)) setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
 
   const filtered = games.filter(g =>
     g.name.toLowerCase().includes(query.toLowerCase())
@@ -274,14 +304,37 @@ export default function Sidebar({ games, activeId, statuses, colors, categories,
           <i className="ti ti-plus" aria-hidden="true" />
           add game
         </button>
-        <button className={styles.addCatBtn} onClick={onAddCategory} title="Add category">
-          <i className="ti ti-folder-plus" aria-hidden="true" />
-        </button>
-        {window.electronAPI?.platform === 'linux' && (
-          <button className={styles.addCatBtn} onClick={onOpenProton} title="Proton manager">
-            <i className="ti ti-flask" aria-hidden="true" />
+        <div className={styles.menuWrap} ref={menuRef}>
+          <button
+            className={styles.addCatBtn}
+            onClick={() => setMenuOpen(o => !o)}
+            title="More options"
+          >
+            <i className="ti ti-dots" aria-hidden="true" />
           </button>
-        )}
+          {menuOpen && (
+            <div className={styles.footerMenu}>
+              <button className={styles.footerMenuItem} onClick={() => { onAddCategory(); setMenuOpen(false) }}>
+                <i className="ti ti-folder-plus" />
+                add category
+              </button>
+              <button className={styles.footerMenuItem} onClick={() => { onCheckAllVersions(); setMenuOpen(false) }}>
+                <i className="ti ti-refresh" />
+                check all versions
+              </button>
+              {window.electronAPI?.platform === 'linux' && (
+                <button className={styles.footerMenuItem} onClick={() => { onOpenProton(); setMenuOpen(false) }}>
+                  <i className="ti ti-flask" />
+                  proton manager
+                </button>
+              )}
+              <button className={styles.footerMenuItem} onClick={() => { onOpenSettings(); setMenuOpen(false) }}>
+                <i className="ti ti-settings" />
+                settings
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </aside>
   )

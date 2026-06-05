@@ -42,8 +42,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Shell
   openExternal: (url) => ipcRenderer.send('shell:openExternal', url),
 
+  // Updating
   onUpdaterStatus: (cb) => ipcRenderer.on('updater:status', (_, data) => cb(data)),
   installUpdate: () => ipcRenderer.send('updater:install'),
   getVersion: () => ipcRenderer.invoke('app:getVersion'),
   platform: process.platform,
+
+  // Settings
+  getStartup: () => ipcRenderer.invoke('settings:getStartup'),
+  setStartup: (enable) => ipcRenderer.invoke('settings:setStartup', enable),
+  getTheme: () => ipcRenderer.invoke('settings:getTheme'),
+  setTheme: (theme) => ipcRenderer.invoke('settings:setTheme', theme),
 })
