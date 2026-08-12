@@ -19,6 +19,7 @@ npm install
 npm run dev        # Electron + Vite hot reload
 npm run dist       # Build installer to release/
 ```
+Or download straight from 
 
 ## Project structure
 
@@ -37,7 +38,7 @@ src/
   App.jsx
 ```
 
-## Version checking
+## Version checking [the website](https://clauncher.cirax.dev/).
 
 Hits `https://api.steamcmd.net/v1/info/{appId}` for the latest public build ID.
 Set your installed version manually in the edit form; the app compares build IDs.
